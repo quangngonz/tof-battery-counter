@@ -12,4 +12,11 @@ app.get('/', (req, res) => {
 
 app.use(routes);
 
-app.listen(3000, () => console.log('🚀 Server running on port 3000'));
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+}
+
+// Export for Vercel
+export default app;
