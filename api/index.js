@@ -13,6 +13,10 @@ const supabase = createClient(
 const SOIL_PER_BATTERY = 0.02;
 const WATER_PER_BATTERY = 0.15;
 
+app.get('/', (req, res) => {
+  res.send('Battery Counter API');
+});
+
 // POST /log
 app.post('/log', async (req, res) => {
   const { timestamp, amount, device_id } = req.body;
