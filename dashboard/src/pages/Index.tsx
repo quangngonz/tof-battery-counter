@@ -12,9 +12,9 @@ const API_BASE_URL =
 // const API_BASE_URL = 'http://localhost:3000';
 
 interface StatsData {
-  totalBatteries: number;
-  soilSaved: number;
-  waterSaved: number;
+  total: number;
+  soil: number;
+  water: number;
 }
 
 interface LogEntry {
@@ -73,19 +73,19 @@ const Index = () => {
         <div className="mb-8 grid gap-4 md:grid-cols-3">
           <StatCard
             title="Total Batteries Collected"
-            value={stats?.totalBatteries?.toLocaleString() || '0'}
+            value={stats?.total?.toLocaleString() || '0'}
             icon={Battery}
             loading={statsLoading}
           />
           <StatCard
             title="Soil Saved (kg)"
-            value={stats?.soilSaved?.toLocaleString() || '0'}
+            value={stats?.soil?.toLocaleString() || '0'}
             icon={Leaf}
             loading={statsLoading}
           />
           <StatCard
             title="Water Saved (L)"
-            value={stats?.waterSaved?.toLocaleString() || '0'}
+            value={stats?.water?.toLocaleString() || '0'}
             icon={Droplets}
             loading={statsLoading}
           />
