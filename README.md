@@ -12,9 +12,20 @@ battery-counter/
 │   ├── sensor.py            # IR sensor handler
 │   ├── sync.py              # WiFi and API sync functions
 │   └── tft.py               # TFT display driver wrapper
-└── api/                     # Node.js Express API
-    ├── index.js             # API server with Supabase integration
-    └── package.json         # Node dependencies
+├── api/                     # Node.js Express API
+│   ├── index.js             # API server entry point
+│   ├── routes.js            # API route definitions
+│   ├── config.js            # Supabase client and constants
+│   ├── package.json         # Node dependencies
+│   ├── routes/
+│   │   ├── log.js           # Battery logging endpoints
+│   │   └── stats.js         # Statistics endpoint
+│   └── tests/               # Python API tests
+│       ├── test_log.py
+│       ├── test_logs.py
+│       ├── test_stats.py
+│       └── runner.py
+└── schema.sql               # Supabase database schema
 ```
 
 ## Features
@@ -39,16 +50,20 @@ battery-counter/
 
 1. Install MicroPython on your Raspberry Pi Pico W
 2. Edit `pico-battery-counter/config.py`:
+
    ```python
    SSID = "your_wifi_ssid"
    PASS = "your_wifi_password"
-   API_LOG = "https://your-api.vercel.app/api/log"
-   API_STATS = "https://your-api.vercel.app/api/stats"
+   API_LOG = "https://your-api.vercel.app/log"
+   API_STATS = "https://your-api.vercel.app/stats"
    IR_PIN = 15  # GPIO pin for IR sensor
+   DEVICE_ID = "pico_w_1"  # Unique identifier for this device
    ```
+
 3. Upload all files in `pico-battery-counter/` to your Pico W
-4. Connect the IR sensor to the configured GPIO pin
-5. (Optional) Initialize TFT display in `main.py`
+4. Connect the IR sensor to the configured GPIO pin (default: GPIO 15)
+5. Connect LED indicator to GPIO 2
+6. (Optional) Initialize TFT display in `main.py` - uncomment and configure the TFT initialization section
 
 ### 2. API Setup
 
@@ -65,35 +80,86 @@ battery-counter/
 
 4. Create `.env` file:
 
-   ```
+   ```env
    SUPABASE_URL=your_supabase_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
+   **Note:** For production, consider using `SUPABASE_SERVICE_ROLE_KEY` instead of `SUPABASE_ANON_KEY` to bypass Row Level Security (RLS)
+
 5. Run the server:
 
    ```bash
-   npm start
+   npm start        # Production
+   npm run dev      # Development with auto-reload
    ```
 
 6. Deploy to Vercel or your preferred platform
 
+### 3. Testing the API
+
+Python tests are available in the `api/tests/` directory:
+
+```bash
+cd api/tests
+python runner.py
+```
+
 ## API Endpoints
+
+### GET `/`
+
+Root endpoint - returns API status
+
+**Response:** `Battery Counter API`
 
 ### POST `/log`
 
 Log a battery count event
 
+**Request body:**
+
 ```json
 {
   "timestamp": 1234567890,
-  "amount": 1
+  "amount": 1,
+  "device_id": "pico_w_1"
 }
+```
+
+**Response:**
+
+```json
+{
+  "ok": true
+}
+```
+
+**Note:** `timestamp` is in Unix epoch seconds (will be converted to timestamptz)
+
+### GET `/log`
+
+Retrieve all battery logs (ordered by timestamp, descending)
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "timestamp": "2025-11-17T10:30:00Z",
+    "amount": 1,
+    "device_id": "pico_w_1",
+    "created_at": "2025-11-17T10:30:01Z"
+  }
+]
 ```
 
 ### GET `/stats`
 
-Get statistics
+Get aggregate statistics
+
+**Response:**
 
 ```json
 {
@@ -105,17 +171,36 @@ Get statistics
 
 ## Environmental Impact Calculation
 
-- **Soil saved**: 0.02 kg per battery
-- **Water saved**: 0.15 L per battery
+The system calculates environmental benefits based on battery recycling:
+
+- **Soil saved**: 0.02 kg per battery (20 grams)
+- **Water saved**: 0.15 L per battery (150 milliliters)
+
+These constants are configured in `api/config.js` as `SOIL_PER_BATTERY` and `WATER_PER_BATTERY`.
 
 ## How It Works
 
-1. IR sensor detects battery passing through
-2. Count is stored locally in `cache.json`
-3. Pico W connects to WiFi and syncs cached data to API
-4. API stores data in Supabase database
-5. Statistics are fetched and displayed on TFT screen
-6. LED blinks to indicate activity
+1. **Detection**: IR sensor detects battery passing through (with debouncing to prevent double-counts)
+2. **Local Storage**: Count is stored locally in `cache.json` on the Pico W
+3. **Sync**: Pico W connects to WiFi and syncs cached data to API with device_id
+4. **Database**: API stores data in Supabase `battery_logs` table with timestamp, amount, and device_id
+5. **Statistics**: Server calculates total batteries and environmental impact
+6. **Display**: Statistics are fetched and displayed on TFT screen (total = server total + unsynced local count)
+7. **Feedback**: LED on GPIO 2 blinks during each main loop iteration to indicate activity
+
+## Database Schema
+
+The `battery_logs` table structure:
+
+| Column       | Type        | Description                           |
+| ------------ | ----------- | ------------------------------------- |
+| `id`         | bigint      | Auto-incrementing primary key         |
+| `timestamp`  | timestamptz | When the battery was logged           |
+| `amount`     | int         | Number of batteries (default: 1)      |
+| `device_id`  | text        | Unique identifier for the Pico device |
+| `created_at` | timestamptz | Record creation time (auto-generated) |
+
+Indexes are created on `timestamp` and `device_id` for optimized queries.
 
 ## License
 
