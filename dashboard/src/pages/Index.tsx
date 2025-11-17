@@ -5,11 +5,8 @@ import { StatCard } from '@/components/StatCard';
 import { BatteryChart } from '@/components/BatteryChart';
 import { toast } from 'sonner';
 
-// Check if development environment
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-// const API_BASE_URL = 'https://asep-battery-counter.vercel.app/api';
-// const API_BASE_URL = 'http://localhost:3000';
 
 interface StatsData {
   total: number;
@@ -61,7 +58,7 @@ const Index = () => {
 
   // Show error toast if API calls fail
   if (statsError || logsError) {
-    toast.error('Unable to fetch data. Please check your API URL.');
+    toast.error('Unable to fetch data. Please check your API connection.');
   }
 
   return (

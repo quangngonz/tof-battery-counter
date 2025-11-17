@@ -3,13 +3,16 @@ import { supabase, SOIL_PER_BATTERY, WATER_PER_BATTERY } from '../config.js';
 export const getStats = async (req, res) => {
   const { data, error } = await supabase.from('battery_logs').select('amount');
 
-  if (error) return res.status(500).json({ error });
+  if (error) {
+    console.error('Database error:', error);
+    return res.status(500).json({ error: 'Failed to fetch stats' });
+  }
 
-  const total = data.reduce((s, r) => s + r.amount, 0);
+  const total = data.reduce((sum, record) => sum + (record.amount || 0), 0);
 
   res.json({
     total,
-    soil: total * SOIL_PER_BATTERY,
-    water: total * WATER_PER_BATTERY,
+    soil: Math.round(total * SOIL_PER_BATTERY * 100) / 100,
+    water: Math.round(total * WATER_PER_BATTERY * 100) / 100,
   });
 };

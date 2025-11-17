@@ -4,7 +4,7 @@ A Raspberry Pi Pico W-based battery collection counter with IR sensor detection 
 
 ## Project Structure
 
-```
+```txt
 battery-counter/
 ├── pico-battery-counter/    # MicroPython code for Raspberry Pi Pico W
 │   ├── main.py              # Main program loop
@@ -25,6 +25,20 @@ battery-counter/
 │       ├── test_logs.py
 │       ├── test_stats.py
 │       └── runner.py
+├── dashboard/               # React/Vite Web Dashboard
+│   ├── src/
+│   │   ├── App.tsx          # Main application component
+│   │   ├── pages/
+│   │   │   ├── Index.tsx    # Dashboard home page
+│   │   │   └── NotFound.tsx # 404 page
+│   │   └── components/      # UI components
+│   │       ├── BatteryChart.tsx    # Data visualization chart
+│   │       ├── DashboardHeader.tsx # Header component
+│   │       ├── StatCard.tsx        # Statistic display cards
+│   │       └── ui/                 # shadcn/ui components
+│   ├── vite.config.ts       # Vite configuration
+│   ├── tailwind.config.ts   # Tailwind CSS configuration
+│   └── package.json         # Frontend dependencies
 └── schema.sql               # Supabase database schema
 ```
 
@@ -35,6 +49,8 @@ battery-counter/
 - **Cloud Sync**: Automatically syncs data to a remote API
 - **Statistics**: Tracks total batteries and calculates environmental impact (soil/water saved)
 - **TFT Display**: Shows real-time count on connected display
+- **Web Dashboard**: Interactive React-based dashboard with real-time statistics and data visualization
+- **Data Visualization**: Chart displaying battery collection trends over time
 - **Offline Support**: Queues records when WiFi is unavailable
 
 ## Hardware Requirements
@@ -96,7 +112,58 @@ battery-counter/
 
 6. Deploy to Vercel or your preferred platform
 
-### 3. Testing the API
+### 3. Dashboard Setup
+
+1. Navigate to the dashboard directory:
+
+   ```bash
+   cd dashboard
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Create `.env` file (or `.env.local`):
+
+   ```env
+   VITE_API_BASE_URL=https://your-api.vercel.app
+   ```
+
+   For local development, use:
+
+   ```env
+   VITE_API_BASE_URL=http://localhost:3000
+   ```
+
+4. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+5. Build for production:
+
+   ```bash
+   npm run build
+   ```
+
+6. Preview production build:
+
+   ```bash
+   npm run preview
+   ```
+
+The dashboard displays:
+
+- **Total Batteries Collected**: Real-time count of all batteries logged
+- **Soil Saved**: Environmental impact in kilograms
+- **Water Saved**: Environmental impact in liters
+- **Collection Chart**: Visual timeline of battery collection data
+
+### 4. Testing the API
 
 Python tests are available in the `api/tests/` directory:
 

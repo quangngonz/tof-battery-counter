@@ -2,8 +2,8 @@
 SSID = "your_wifi"
 PASS = "your_pass"
 
-API_LOG = "https://asep-battery-counter.vercel.app/log"
-API_STATS = "https://asep-battery-counter.vercel.app/stats"
+API_LOG = "https://asep-battery-counter-api.vercel.app/log"
+API_STATS = "https://asep-battery-counter-api.vercel.app/stats"
 
 # TODO: Change the IR sensor pin
 IR_PIN = 15
