@@ -1,0 +1,14 @@
+# Python package requirements for Battery Counter on Raspberry Pi
+# Install with: pip3 install -r requirements.txt
+
+# GPIO control for Raspberry Pi
+RPi.GPIO>=0.7.0
+
+# SPI communication for display
+spidev>=3.5
+
+# HTTP requests for API communication
+requests>=2.28.0
+
+# Image processing for display graphics
+Pillow>=9.0.0

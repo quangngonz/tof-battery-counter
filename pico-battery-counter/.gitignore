@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# MicroPython
+.micropico
+
+# Cache and logs
+*.log
+/var/local/battery_counter_cache.json
+cache.json
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Test outputs
+test_output/
+*.test
+
+# Temporary files
+tmp/
+temp/
