@@ -53,12 +53,8 @@ battery-counter/
 ### 2. API Setup
 
 1. Create a Supabase project and database
-2. Create a `battery_logs` table with columns:
 
-   - `id` (primary key)
-   - `timestamp` (timestamp)
-   - `amount` (integer)
-   - `device_id` (text)
+2. Run the SQL schema from `schema.sql` in your Supabase SQL Editor to create the `battery_logs` table
 
 3. Install dependencies:
 

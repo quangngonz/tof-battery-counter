@@ -8,3 +8,6 @@ API_STATS = "https://your-vercel-project.vercel.app/api/stats"
 
 # TODO: Change the IR sensor pin
 IR_PIN = 15
+
+# TODO: Set a unique device ID for this Pico
+DEVICE_ID = "pico_w_1"

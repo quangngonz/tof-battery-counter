@@ -15,7 +15,7 @@ const WATER_PER_BATTERY = 0.15;
 
 // POST /log
 app.post('/log', async (req, res) => {
-  const { timestamp, amount } = req.body;
+  const { timestamp, amount, device_id } = req.body;
 
   if (!timestamp) {
     return res.status(400).json({ error: 'Missing timestamp' });
@@ -24,7 +24,7 @@ app.post('/log', async (req, res) => {
   const { error } = await supabase.from('battery_logs').insert({
     timestamp: new Date(timestamp * 1000),
     amount: amount || 1,
-    device_id: 'pico_w_1',
+    device_id: device_id || 'unknown',
   });
 
   if (error) return res.status(500).json({ error });

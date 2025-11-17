@@ -3,7 +3,7 @@ import utime
 import urequests
 import json
 import os
-from config import SSID, PASS, API_LOG, API_STATS
+from config import SSID, PASS, API_LOG, API_STATS, DEVICE_ID
 
 CACHE_FILE = "cache.json"
 
@@ -24,7 +24,8 @@ def add_record():
     cache = load_cache()
     cache.append({
         "timestamp": utime.time(),
-        "amount": 1
+        "amount": 1,
+        "device_id": DEVICE_ID
     })
     save_cache(cache)
 
