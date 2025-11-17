@@ -8,7 +8,9 @@
     {
       "src": "dashboard/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "config": {
+        "distDir": "dashboard/dist"
+      }
     }
   ],
   "rewrites": [
@@ -18,7 +20,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/dashboard/dist/$1"
+      "destination": "/index.html"
     }
   ]
 }
