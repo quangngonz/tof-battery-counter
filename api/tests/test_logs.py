@@ -8,8 +8,8 @@ from .config import API_BASE_URL
 
 def test_get_logs():
     """Test getting battery logs"""
-    print("Testing GET /logs ...")
-    response = requests.get(f"{API_BASE_URL}/logs")
+    print("Testing GET /log ...")
+    response = requests.get(f"{API_BASE_URL}/log")
     print(f"Status: {response.status_code}")
 
     if response.status_code == 200:

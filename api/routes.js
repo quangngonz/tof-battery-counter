@@ -4,7 +4,7 @@ import { getStats } from './routes/stats.js';
 
 const router = express.Router();
 
-router.get('/logs', getLogs);
+router.get('/log', getLogs);
 router.post('/log', logBattery);
 router.get('/stats', getStats);
 
