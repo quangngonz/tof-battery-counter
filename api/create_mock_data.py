@@ -14,7 +14,6 @@ supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 if not supabase_url or not supabase_key:
     raise ValueError(
         "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment variables")
-
 supabase: Client = create_client(supabase_url, supabase_key)
 
 
@@ -29,13 +28,14 @@ def clear_all_data():
         print(f"Error clearing data: {str(e)}")
 
 
-def create_mock_data(num_days=90, device_id="pico-001"):
+def create_mock_data(num_days=90, device_id="pico-001", batch_size=100, clear_existing=True):
     """
     Create mock battery log entries with realistic patterns over multiple months
 
     Args:
         num_days: Number of days to generate data for (default 90 = ~3 months)
         device_id: Device identifier for the logs
+        batch_size: Number of entries to insert per batch
     """
     print(f"Creating mock battery log entries for the last {num_days} days...")
 
@@ -52,7 +52,7 @@ def create_mock_data(num_days=90, device_id="pico-001"):
         # Weekends: 1-3 entries per day
         is_weekend = current_date.weekday() in [5, 6]
         num_entries_today = random.randint(
-            1, 3) if is_weekend else random.randint(2, 4)
+            1, 3) if is_weekend else random.randint(2, 10)
 
         for _ in range(num_entries_today):
             # Random time during the day (8 AM to 8 PM)
@@ -80,8 +80,10 @@ def create_mock_data(num_days=90, device_id="pico-001"):
 
     print(f"Generated {len(entries)} entries total")
 
+    if clear_existing:
+        clear_all_data()
+
     # Insert in batches to avoid request size limits
-    batch_size = 100
     total_inserted = 0
 
     for i in range(0, len(entries), batch_size):
@@ -99,14 +101,87 @@ def create_mock_data(num_days=90, device_id="pico-001"):
     return total_inserted
 
 
+def print_help():
+    """Print help message"""
+    help_text = """
+Battery Logger Mock Data Generator
+
+Usage:
+    python create_mock_data.py [OPTIONS]
+
+Options:
+    -h, --help              Show this help message and exit
+    --clear                 Clear all existing data before inserting new data
+    --days N               Number of days to generate data for (default: 90)
+    --device-id ID         Device identifier for logs (default: pico-001)
+    --batch-size N         Number of entries to insert per batch (default: 100)
+
+Examples:
+    python create_mock_data.py
+        Generate 90 days of mock data without clearing existing data
+
+    python create_mock_data.py --clear
+        Clear existing data and generate 90 days of mock data
+
+    python create_mock_data.py --days 30 --device-id pico-002
+        Generate 30 days of mock data for device pico-002
+
+    python create_mock_data.py --clear --days 180 --batch-size 50
+        Clear data and generate 180 days with batch size of 50
+"""
+    print(help_text)
+
+
 def main():
     """Main execution function"""
     try:
-        # Clear existing data
-        clear_all_data()
+        import sys
 
-        # Create mock data for the last 90 days (~3 months)
-        create_mock_data(num_days=90, device_id="pico-001")
+        # Check for help flag
+        if '-h' in sys.argv or '--help' in sys.argv:
+            print_help()
+            return 0
+
+        # Parse command line arguments
+        clear_existing = '--clear' in sys.argv
+
+        # Parse --days argument
+        num_days = 90
+        if '--days' in sys.argv:
+            try:
+                days_index = sys.argv.index('--days')
+                num_days = int(sys.argv[days_index + 1])
+            except (IndexError, ValueError):
+                print("❌ Error: --days requires a valid integer argument")
+                return 1
+
+        # Parse --device-id argument
+        device_id = "pico-001"
+        if '--device-id' in sys.argv:
+            try:
+                device_index = sys.argv.index('--device-id')
+                device_id = sys.argv[device_index + 1]
+            except IndexError:
+                print("❌ Error: --device-id requires a value")
+                return 1
+
+        # Parse --batch-size argument
+        batch_size = 100
+        if '--batch-size' in sys.argv:
+            try:
+                batch_index = sys.argv.index('--batch-size')
+                batch_size = int(sys.argv[batch_index + 1])
+            except (IndexError, ValueError):
+                print("❌ Error: --batch-size requires a valid integer argument")
+                return 1
+
+        # Create mock data
+        create_mock_data(
+            num_days=num_days,
+            device_id=device_id,
+            batch_size=batch_size,
+            clear_existing=clear_existing
+        )
 
         # Verify the data
         print("\nVerifying data...")
