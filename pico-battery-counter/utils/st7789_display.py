@@ -147,12 +147,13 @@ class ST7789:
         rgb_image = image.convert('RGB')
         pixels = list(rgb_image.getdata())
 
-        # Convert RGB888 to RGB565
+        # Convert RGB888 to BGR565 (ST7789 uses BGR byte order)
         buffer = []
         for r, g, b in pixels:
-            rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
-            buffer.append((rgb565 >> 8) & 0xFF)
-            buffer.append(rgb565 & 0xFF)
+            # Swap R and B for BGR format
+            bgr565 = ((b & 0xF8) << 8) | ((g & 0xFC) << 3) | (r >> 3)
+            buffer.append((bgr565 >> 8) & 0xFF)
+            buffer.append(bgr565 & 0xFF)
 
         # Set drawing window
         self._send_command(0x2A)  # Column address set
