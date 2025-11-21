@@ -276,14 +276,14 @@ class TFT:
             draw.rectangle(
                 [(battery_x + (battery_width - terminal_width) // 2, battery_y - terminal_height),
                  (battery_x + (battery_width + terminal_width) // 2, battery_y)],
-                fill=(0, 150, 0)
+                fill=(0, 200, 0)
             )
 
             # Battery body with dark green outline - GREEN
             draw.rectangle(
                 [(battery_x, battery_y), (battery_x +
                                           battery_width, battery_y + battery_height)],
-                outline=(0, 150, 0), fill=None, width=3
+                outline=(0, 200, 0), fill=None, width=3
             )
 
             # Battery fill (lighter green inside) - GREEN
@@ -291,7 +291,7 @@ class TFT:
             draw.rectangle(
                 [(battery_x + 3, battery_y + battery_height - fill_height - 3),
                  (battery_x + battery_width - 3, battery_y + battery_height - 3)],
-                fill=(100, 255, 100)
+                fill=(50, 255, 50)
             )
 
             # Draw separator
