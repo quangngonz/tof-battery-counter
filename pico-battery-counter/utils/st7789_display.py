@@ -275,28 +275,28 @@ class TFT:
             battery_width = 30
             battery_height = 60
 
-            # Battery terminal (positive) at top - GREEN
+            # Battery terminal (positive) at top - PURPLE
             terminal_width = 14
             terminal_height = 5
             draw.rectangle(
                 [(battery_x + (battery_width - terminal_width) // 2, battery_y - terminal_height),
                  (battery_x + (battery_width + terminal_width) // 2, battery_y)],
-                fill=(0, 200, 0)
+                fill=(128, 0, 128)  # Purple
             )
 
-            # Battery body with dark green outline - GREEN
+            # Battery body with dark purple outline - PURPLE
             draw.rectangle(
                 [(battery_x, battery_y), (battery_x +
                                           battery_width, battery_y + battery_height)],
-                outline=(0, 200, 0), fill=None, width=3
+                outline=(128, 0, 128), fill=None, width=3  # Purple
             )
 
-            # Battery fill (lighter green inside) - GREEN
+            # Battery fill (lighter purple inside) - PURPLE
             fill_height = int(battery_height * 0.75)
             draw.rectangle(
                 [(battery_x + 3, battery_y + battery_height - fill_height - 3),
                  (battery_x + battery_width - 3, battery_y + battery_height - 3)],
-                fill=(50, 255, 50)
+                fill=(186, 85, 211)  # Light Purple
             )
 
             # Draw separator
