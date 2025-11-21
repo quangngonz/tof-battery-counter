@@ -19,7 +19,7 @@ BL_PIN = None  # Set to None to disable, or use GPIO like 18, 23, 24, etc.
 # Display Configuration
 WIDTH = 240
 HEIGHT = 320
-ROTATION = 0  # 0, 90, 180, or 270
+ROTATION = 270  # 0, 90, 180, or 270
 
 
 def main():
