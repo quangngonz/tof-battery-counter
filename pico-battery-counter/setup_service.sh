@@ -3,7 +3,7 @@
 
 SERVICE_FILE="battery-counter.service"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_FILE"
-PROJECT_DIR="/Users/quangngo/Documents/Data/Quang's Life/asep_project/battery-counter/pico-battery-counter"
+PROJECT_DIR=$(pwd)  # Use the current working directory
 
 # Copy the service file to the systemd directory
 sudo cp "$PROJECT_DIR/$SERVICE_FILE" "$SERVICE_PATH"
