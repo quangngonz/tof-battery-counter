@@ -210,7 +210,7 @@ class TFT:
                 bl_pin=13,
                 width=240,
                 height=320,
-                rotation=90  # Landscape mode
+                rotation=270  # Landscape mode
             )
             self.display.clear((0, 0, 0))  # Clear to black
             print("TFT Display initialized")
