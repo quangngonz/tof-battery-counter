@@ -1,147 +1,210 @@
-#!/usr/bin/env python3
 """
-Main program for Battery Counter with IR sensor and cloud sync.
-Raspberry Pi 4 / Raspberry Pi Zero 2 version.
+Raspberry Pi 4 Time Display on ST7789 TFT
+Fetches current time from NTP server and displays on 240x320 TFT
 """
+
 import time
-import signal
-import sys
-import RPi.GPIO as GPIO
-from sensor import IRSensor
-from sync import add_record, sync, fetch_stats, load_cache
-from tft import TFT
-import config
+import ntptime
+from machine import Pin, SPI
+from utils.st7789 import ST7789
 
-# Constants
-LOOP_DELAY_MS = 50
-STATS_FETCH_INTERVAL = 100
+# Time server configuration
+TIMEZONE_OFFSET = 0  # Adjust for your timezone (hours from UTC)
 
-# Global cleanup flag
-cleanup_done = False
+# GPIO Pin Configuration for Raspberry Pi 4
+# Display pinout: BL, CS, DC, RES, SDA, SCL, VCC, GND
+# RPi 4 Header: Pin 19=GPIO10, Pin 21=GPIO9, Pin 22=GPIO25, Pin 23=GPIO11, Pin 24=GPIO8
+SPI_BUS = 0
+SCK_PIN = 11   # Pin 23 - GPIO11 (SPI0 SCLK) → SCL (clock)
+MOSI_PIN = 10  # Pin 19 - GPIO10 (SPI0 MOSI) → SDA (data)
+DC_PIN = 9     # Pin 21 - GPIO9 (SPI0 MISO) → DC (data/command)
+RST_PIN = 25   # Pin 22 - GPIO25 → RES (reset)
+CS_PIN = 8     # Pin 24 - GPIO8 (SPI0 CE0) → CS (chip select)
+BL_PIN = 7     # Any free GPIO → BL (backlight)
+
+# Display Configuration
+DISPLAY_WIDTH = 240
+DISPLAY_HEIGHT = 320
+ROTATION = 4  # Orientation for 240x320
+
+# Color definitions (RGB565)
+BLACK = 0x0000
+WHITE = 0xFFFF
+RED = 0xF800
+GREEN = 0x07E0
+BLUE = 0x001F
+CYAN = 0x07FF
+MAGENTA = 0xF81F
+YELLOW = 0xFFE0
+GRAY = 0x8410
 
 
-def cleanup_handler(signum, frame):
-    """Handle cleanup on exit."""
-    global cleanup_done
-    if cleanup_done:
+def get_time_from_server():
+    """Fetch current time from NTP server"""
+    try:
+        print("Fetching time from NTP server...")
+        ntptime.settime()
+
+        # Get current time
+        current_time = time.localtime()
+
+        # Apply timezone offset
+        timestamp = time.mktime(current_time) + (TIMEZONE_OFFSET * 3600)
+        adjusted_time = time.localtime(timestamp)
+
+        return adjusted_time
+    except Exception as e:
+        print(f"Error fetching time: {e}")
+        return None
+
+
+def format_time(t):
+    """Format time tuple to readable string"""
+    hour = t[3]
+    minute = t[4]
+    second = t[5]
+    return f"{hour:02d}:{minute:02d}:{second:02d}"
+
+
+def format_date(t):
+    """Format date tuple to readable string"""
+    year = t[0]
+    month = t[1]
+    day = t[2]
+
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    month_name = months[month - 1] if 1 <= month <= 12 else "???"
+
+    return f"{day:02d} {month_name} {year}"
+
+
+def format_weekday(t):
+    """Format weekday from time tuple"""
+    weekday = t[6]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday"]
+    return days[weekday] if 0 <= weekday < 7 else "Unknown"
+
+
+def init_display():
+    """Initialize ST7789 TFT display"""
+    print("Initializing display...")
+
+    # Initialize SPI
+    spi = SPI(SPI_BUS, baudrate=40000000, polarity=0, phase=0,
+              sck=Pin(SCK_PIN), mosi=Pin(MOSI_PIN))
+
+    # Initialize control pins
+    dc = Pin(DC_PIN, Pin.OUT)
+    rst = Pin(RST_PIN, Pin.OUT)
+    cs = Pin(CS_PIN, Pin.OUT)
+    bl = Pin(BL_PIN, Pin.OUT) if BL_PIN else None
+
+    # Create display instance
+    display = ST7789(spi, DISPLAY_WIDTH, DISPLAY_HEIGHT,
+                     rst, dc, cs, bl, rotation=ROTATION)
+
+    print("Display initialized!")
+    return display
+
+
+def draw_time_display(display, time_data):
+    """Draw time and date on the display"""
+    # Clear screen
+    display.fill(BLACK)
+
+    if time_data is None:
+        # Show error message
+        display.text("Time Error", 60, 140, RED, 2)
+        display.text("Check NTP", 60, 160, RED, 2)
         return
 
-    cleanup_done = True
-    print('\nShutting down Battery Counter...')
+    # Format time components
+    time_str = format_time(time_data)
+    date_str = format_date(time_data)
+    weekday_str = format_weekday(time_data)
 
-    # Clean up GPIO
-    try:
-        GPIO.cleanup()
-    except Exception as e:
-        print(f'GPIO cleanup error: {e}')
+    # Display layout for 240x320 (portrait mode with rotation 4)
+    # Title
+    display.text("CURRENT TIME", 50, 40, CYAN, 2)
 
-    # Clean up display
-    try:
-        if tft:
-            tft.cleanup()
-    except Exception as e:
-        print(f'Display cleanup error: {e}')
+    # Time (large)
+    display.text(time_str, 40, 100, WHITE, 3)
 
-    print('Cleanup complete')
-    sys.exit(0)
+    # Date
+    display.text(date_str, 50, 160, YELLOW, 2)
 
+    # Weekday
+    display.text(weekday_str, 40, 200, GREEN, 2)
 
-# Register signal handlers for clean shutdown
-signal.signal(signal.SIGINT, cleanup_handler)
-signal.signal(signal.SIGTERM, cleanup_handler)
+    # Status indicator
+    display.fill_rect(110, 270, 20, 20, GREEN)
+    display.text("LIVE", 85, 295, GREEN, 1)
 
 
 def main():
-    """Main application loop."""
-    global tft
+    """Main program loop"""
+    print("=" * 40)
+    print("Raspberry Pi 4 Time Display")
+    print("=" * 40)
 
-    print('Battery Counter for Raspberry Pi')
-    print('=' * 40)
-    print(f'Device ID: {config.DEVICE_ID}')
-    print(f'IR Sensor: GPIO{config.IR_PIN}')
-    print(f'LED: GPIO{config.LED_PIN}')
-    print('=' * 40)
+    # Initialize display
+    display = init_display()
 
-    # Initialize hardware
-    try:
-        sensor = IRSensor(config.IR_PIN)
-        print('✓ IR Sensor initialized')
-    except Exception as e:
-        print(f'✗ Failed to initialize IR sensor: {e}')
-        sys.exit(1)
+    # Show startup message
+    display.fill(BLACK)
+    display.text("Starting...", 70, 140, WHITE, 2)
+    time.sleep(1)
 
-    try:
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(config.LED_PIN, GPIO.OUT)
-        print('✓ LED initialized')
-    except Exception as e:
-        print(f'✗ Failed to initialize LED: {e}')
-        sys.exit(1)
+    # Sync time from NTP
+    display.fill(BLACK)
+    display.text("Syncing NTP", 60, 140, CYAN, 2)
+    time.sleep(1)
 
-    try:
-        tft = TFT()
-        print('✓ Display initialized')
-        # Show startup message
-        tft.show(0, 0.0, 0.0)
-    except Exception as e:
-        print(f'✗ Failed to initialize display: {e}')
-        print('  Continuing without display...')
-        tft = None
+    # Main loop - update time every second
+    last_update = 0
+    update_interval = 1  # Update display every 1 second
+    ntp_sync_interval = 3600  # Sync with NTP every hour
+    last_ntp_sync = 0
 
-    # State variables
-    last_server_stats = {'total': 0, 'soil': 0, 'water': 0}
-    loop_counter = 0
+    time_data = None
 
-    print('\nBattery Counter started - monitoring for batteries...\n')
+    while True:
+        try:
+            current = time.time()
 
-    try:
-        while True:
-            # Turn on status LED
-            GPIO.output(config.LED_PIN, GPIO.HIGH)
+            # Sync with NTP server periodically
+            if current - last_ntp_sync >= ntp_sync_interval or time_data is None:
+                time_data = get_time_from_server()
+                last_ntp_sync = current
 
-            # Check for sensor trigger
-            if sensor.check():
-                add_record()
-                print('Battery detected and logged')
+            # Update display
+            if current - last_update >= update_interval:
+                # Get current local time
+                time_data = time.localtime()
 
-            # Sync cached records to server
-            sync()
+                # Draw to display
+                draw_time_display(display, time_data)
 
-            # Fetch server stats periodically to reduce API calls
-            if loop_counter >= STATS_FETCH_INTERVAL:
-                data = fetch_stats()
-                if data:
-                    last_server_stats = data
+                last_update = current
 
-                loop_counter = 0
+                # Print to console
+                print(f"{format_time(time_data)} - {format_date(time_data)}")
 
-            # Calculate total including unsynced records
-            unsynced_count = len(load_cache())
-            total_display = last_server_stats.get('total', 0) + unsynced_count
-            soil_display = last_server_stats.get(
-                'soil', 0) + (unsynced_count * 0.02)
-            water_display = last_server_stats.get(
-                'water', 0) + (unsynced_count * 0.15)
+            time.sleep(0.1)
 
-            # Update display if available
-            if tft:
-                try:
-                    tft.show(total_display, soil_display, water_display)
-                except Exception as e:
-                    print(f'Display error: {e}')
-
-            # Small delay and turn off LED
-            time.sleep(LOOP_DELAY_MS / 1000.0)
-            GPIO.output(config.LED_PIN, GPIO.LOW)
-
-            loop_counter += 1
-
-    except KeyboardInterrupt:
-        cleanup_handler(None, None)
-    except Exception as e:
-        print(f'Fatal error: {e}')
-        cleanup_handler(None, None)
+        except KeyboardInterrupt:
+            print("\nStopping...")
+            display.fill(BLACK)
+            display.text("Goodbye!", 80, 150, WHITE, 2)
+            time.sleep(1)
+            display.power_off()
+            break
+        except Exception as e:
+            print(f"Error in main loop: {e}")
+            time.sleep(5)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
