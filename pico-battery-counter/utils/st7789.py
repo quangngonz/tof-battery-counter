@@ -33,7 +33,8 @@ class ST7789:
         # Initialize pins
         self.reset.on()
         self.dc.off()
-        self.cs.on()
+        if self.cs:
+            self.cs.on()
 
         if self.backlight:
             self.backlight.on()
@@ -44,20 +45,24 @@ class ST7789:
 
     def _write_cmd(self, cmd):
         """Write command to display"""
-        self.cs.off()
+        if self.cs:
+            self.cs.off()
         self.dc.off()
         self.spi.writebytes([cmd])
-        self.cs.on()
+        if self.cs:
+            self.cs.on()
 
     def _write_data(self, data):
         """Write data to display"""
-        self.cs.off()
+        if self.cs:
+            self.cs.off()
         self.dc.on()
         if isinstance(data, int):
             self.spi.writebytes([data])
         else:
             self.spi.writebytes(data)
-        self.cs.on()
+        if self.cs:
+            self.cs.on()
 
     def _init_display(self):
         """Initialize the ST7789 display"""

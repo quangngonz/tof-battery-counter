@@ -109,15 +109,14 @@ def init_display():
     spi.max_speed_hz = 40000000
     spi.mode = 0
 
-    # Initialize control pins using gpiozero
+    # Initialize control pins using gpiozero (CS is handled by SPI hardware)
     dc = OutputDevice(DC_PIN)
     rst = OutputDevice(RST_PIN)
-    cs = OutputDevice(CS_PIN)
     bl = OutputDevice(BL_PIN) if BL_PIN else None
 
-    # Create display instance
+    # Create display instance (cs=None since SPI handles it)
     display = ST7789(spi, DISPLAY_WIDTH, DISPLAY_HEIGHT,
-                     rst, dc, cs, bl, rotation=ROTATION)
+                     rst, dc, None, bl, rotation=ROTATION)
 
     print("Display initialized!")
     return display
