@@ -139,9 +139,11 @@ sudo systemctl start battery-counter.service
 sudo systemctl status battery-counter.service
 ```
 
-## How to Set Up and Run the Service
+## Service Management
 
-To set up and run the battery-counter service on your Raspberry Pi, follow these steps:
+### Initial Setup
+
+To set up and run the battery-counter service on your Raspberry Pi:
 
 1. Make the setup script executable:
 
@@ -150,11 +152,112 @@ To set up and run the battery-counter service on your Raspberry Pi, follow these
    ```
 
 2. Run the setup script:
+
    ```bash
    ./setup_service.sh
    ```
 
 This will copy the service file to the appropriate location, reload the systemd daemon, enable the service to run on startup, and start the service immediately.
+
+### Service Control Commands
+
+**Start the service:**
+
+```bash
+sudo systemctl start battery-counter.service
+```
+
+**Stop the service:**
+
+```bash
+sudo systemctl stop battery-counter.service
+```
+
+**Restart the service:**
+
+```bash
+sudo systemctl restart battery-counter.service
+```
+
+**Check service status:**
+
+```bash
+sudo systemctl status battery-counter.service
+```
+
+**Enable service on boot:**
+
+```bash
+sudo systemctl enable battery-counter.service
+```
+
+**Disable service on boot:**
+
+```bash
+sudo systemctl disable battery-counter.service
+```
+
+### Viewing Logs
+
+**View real-time logs (follow mode):**
+
+```bash
+sudo journalctl -u battery-counter.service -f
+```
+
+**View last 50 lines:**
+
+```bash
+sudo journalctl -u battery-counter.service -n 50
+```
+
+**View logs since today:**
+
+```bash
+sudo journalctl -u battery-counter.service --since today
+```
+
+**View logs with timestamps:**
+
+```bash
+sudo journalctl -u battery-counter.service -o short-precise
+```
+
+### After Git Push
+
+When you push changes to the repository and pull them on the Raspberry Pi:
+
+1. **Pull the latest changes:**
+
+   ```bash
+   cd ~/Documents/asep-battery-counter/pico-battery-counter
+   git pull
+   ```
+
+2. **Restart the service to apply changes:**
+
+   ```bash
+   sudo systemctl restart battery-counter.service
+   ```
+
+3. **Verify the service is running:**
+
+   ```bash
+   sudo systemctl status battery-counter.service
+   ```
+
+4. **Monitor logs for any errors:**
+
+   ```bash
+   sudo journalctl -u battery-counter.service -f
+   ```
+
+**Note:** If you change the service file itself (`battery-counter.service`), you need to reload the systemd daemon:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart battery-counter.service
+```
 
 ## How It Works
 
