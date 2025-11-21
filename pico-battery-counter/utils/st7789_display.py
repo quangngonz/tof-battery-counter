@@ -327,8 +327,10 @@ class TFT:
             draw.text((160, 180), f"{water:.2f} L", fill=(
                 255, 200, 150), font=font_medium)
 
-            # Display live time in the top-right corner with smaller font size
-            draw.text((self.display.width - 80, 10), self.current_time,
+            # Center the clock horizontally in the top-right section
+            clock_x = self.display.width - 60  # Adjusted x-coordinate for centering
+            clock_y = 15  # Vertically center the clock in the top-right section
+            draw.text((clock_x, clock_y), self.current_time,
                       fill=(255, 255, 255), font=font_small)
 
             # Display the image
