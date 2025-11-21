@@ -21,7 +21,9 @@ BL_PIN = None  # Set to GPIO number if backlight control is needed
 # Display Configuration
 WIDTH = 240
 HEIGHT = 320
-ROTATION = 90  # Rotate 90 degrees to the left (landscape)
+
+ROTATIONS = [0, 90, 180, 270]
+ROTATION = ROTATIONS[3]  # Rotate 90 degrees to the left (landscape)
 
 
 def draw_clock(width, height):
