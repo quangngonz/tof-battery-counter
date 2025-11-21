@@ -139,6 +139,23 @@ sudo systemctl start battery-counter.service
 sudo systemctl status battery-counter.service
 ```
 
+## How to Set Up and Run the Service
+
+To set up and run the battery-counter service on your Raspberry Pi, follow these steps:
+
+1. Make the setup script executable:
+
+   ```bash
+   chmod +x setup_service.sh
+   ```
+
+2. Run the setup script:
+   ```bash
+   ./setup_service.sh
+   ```
+
+This will copy the service file to the appropriate location, reload the systemd daemon, enable the service to run on startup, and start the service immediately.
+
 ## How It Works
 
 ### Main Loop (`main.py`)
