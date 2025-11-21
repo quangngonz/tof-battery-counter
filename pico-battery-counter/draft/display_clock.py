@@ -5,10 +5,17 @@ Displays current date and time, updating every second
 Rotated 90 degrees to the left (landscape mode)
 """
 
-import time
-from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
 from utils.st7789_display import ST7789
+from PIL import Image, ImageDraw, ImageFont
+from datetime import datetime
+import time
+import sys
+import os
+from pathlib import Path
+
+# Add parent directory to Python path to allow imports from utils
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 # Pin Configuration
 SPI_BUS = 0
