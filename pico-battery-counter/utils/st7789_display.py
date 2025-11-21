@@ -269,8 +269,8 @@ class TFT:
             draw.text((10, 90), f"{int(total)}", fill=(
                 255, 255, 255), font=font_large)
 
-            # Draw vertical battery icon aligned to the right
-            battery_x = 278
+            # Adjust battery position to move it to the left
+            battery_x = 250  # Reduced x-coordinate to shift left
             battery_y = 60
             battery_width = 30
             battery_height = 60
