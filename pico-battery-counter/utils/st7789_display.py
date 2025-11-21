@@ -265,13 +265,13 @@ class TFT:
                 255, 255, 255), font=font_large)
 
             # Draw vertical battery icon aligned to the right
-            battery_x = 280
+            battery_x = 282
             battery_y = 60
-            battery_width = 25
+            battery_width = 30
             battery_height = 60
 
             # Battery terminal (positive) at top
-            terminal_width = 12
+            terminal_width = 14
             terminal_height = 5
             draw.rectangle(
                 [(battery_x + (battery_width - terminal_width) // 2, battery_y - terminal_height),
