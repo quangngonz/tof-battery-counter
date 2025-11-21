@@ -9,6 +9,7 @@ import spidev
 import RPi.GPIO as GPIO
 import time
 from PIL import Image
+import threading
 
 
 class ST7789:
@@ -223,6 +224,18 @@ class TFT:
             print(f"Failed to initialize TFT display: {e}")
             self.display = None
 
+        self.current_time = ""
+        self._start_time_thread()
+
+    def _start_time_thread(self):
+        """Start a thread to update the time periodically."""
+        def update_time():
+            while True:
+                self.current_time = time.strftime("%H:%M")
+                time.sleep(60)  # Update every minute
+
+        threading.Thread(target=update_time, daemon=True).start()
+
     def show(self, total, soil, water):
         """
         Display battery counter statistics on the TFT
@@ -315,8 +328,7 @@ class TFT:
                 255, 200, 150), font=font_medium)
 
             # Display live time in the top-right corner
-            current_time = time.strftime("%H:%M:%S")
-            draw.text((self.display.width - 120, 10), current_time,
+            draw.text((self.display.width - 120, 10), self.current_time,
                       fill=(255, 255, 255), font=font_medium)
 
             # Display the image
