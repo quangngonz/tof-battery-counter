@@ -86,7 +86,7 @@ class ST7789:
         self._send_command(0x3A)  # Set color mode
         self._send_data(0x55)     # 16-bit color
 
-        # Memory data access control - set rotation
+        # Memory data access control - set rotation and BGR bit
         self._send_command(0x36)
         rotation_values = {
             0: 0x00,    # Normal
@@ -94,7 +94,8 @@ class ST7789:
             180: 0xC0,  # Rotate 180 degrees
             270: 0xA0   # Rotate 270 degrees
         }
-        self._send_data(rotation_values.get(self.rotation, 0x00))
+        # Set bit 3 (0x08) to enable BGR color order
+        self._send_data(rotation_values.get(self.rotation, 0x00) | 0x08)
 
         self._send_command(0x2A)  # Column address set
         self._send_data(0x00)
