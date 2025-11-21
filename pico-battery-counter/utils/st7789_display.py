@@ -264,20 +264,46 @@ class TFT:
             draw.text((10, 90), f"{int(total)}", fill=(
                 255, 255, 255), font=font_large)
 
+            # Draw battery icon next to count
+            battery_x = 150
+            battery_y = 90
+            battery_width = 50
+            battery_height = 25
+
+            # Battery body
+            draw.rectangle(
+                [(battery_x, battery_y), (battery_x +
+                                          battery_width, battery_y + battery_height)],
+                outline=(100, 200, 255), fill=None, width=3
+            )
+            # Battery terminal (positive)
+            draw.rectangle(
+                [(battery_x + battery_width, battery_y + 7),
+                 (battery_x + battery_width + 5, battery_y + 18)],
+                fill=(100, 200, 255)
+            )
+            # Battery fill (charge indicator)
+            fill_width = int(battery_width * 0.7)
+            draw.rectangle(
+                [(battery_x + 3, battery_y + 3), (battery_x +
+                                                  fill_width, battery_y + battery_height - 3)],
+                fill=(0, 255, 100)
+            )
+
             # Draw separator
             draw.line([(10, 140), (310, 140)], fill=(100, 100, 100), width=1)
 
             # Draw soil pollution
             draw.text((10, 155), "Soil Impact:", fill=(
-                255, 150, 100), font=font_small)
+                100, 150, 255), font=font_small)
             draw.text((10, 180), f"{soil:.2f} kg", fill=(
-                255, 200, 150), font=font_medium)
+                150, 200, 255), font=font_medium)
 
             # Draw water pollution
             draw.text((160, 155), "Water Impact:", fill=(
-                100, 150, 255), font=font_small)
+                255, 150, 100), font=font_small)
             draw.text((160, 180), f"{water:.2f} L", fill=(
-                150, 200, 255), font=font_medium)
+                255, 200, 150), font=font_medium)
 
             # Display the image
             self.display.display_image(img)
