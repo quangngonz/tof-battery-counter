@@ -265,33 +265,33 @@ class TFT:
                 255, 255, 255), font=font_large)
 
             # Draw vertical battery icon aligned to the right
-            battery_x = 282
+            battery_x = 278
             battery_y = 60
             battery_width = 30
             battery_height = 60
 
-            # Battery terminal (positive) at top
+            # Battery terminal (positive) at top - GREEN
             terminal_width = 14
             terminal_height = 5
             draw.rectangle(
                 [(battery_x + (battery_width - terminal_width) // 2, battery_y - terminal_height),
                  (battery_x + (battery_width + terminal_width) // 2, battery_y)],
-                fill=(0, 100, 0)
+                fill=(0, 150, 0)
             )
 
-            # Battery body with dark green outline
+            # Battery body with dark green outline - GREEN
             draw.rectangle(
                 [(battery_x, battery_y), (battery_x +
                                           battery_width, battery_y + battery_height)],
-                outline=(0, 100, 0), fill=None, width=3
+                outline=(0, 150, 0), fill=None, width=3
             )
 
-            # Battery fill (lighter green inside)
+            # Battery fill (lighter green inside) - GREEN
             fill_height = int(battery_height * 0.75)
             draw.rectangle(
                 [(battery_x + 3, battery_y + battery_height - fill_height - 3),
                  (battery_x + battery_width - 3, battery_y + battery_height - 3)],
-                fill=(50, 200, 50)
+                fill=(100, 255, 100)
             )
 
             # Draw separator
