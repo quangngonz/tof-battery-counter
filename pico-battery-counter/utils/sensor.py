@@ -25,8 +25,7 @@ class IRSensor:
         self.debounce_time = DEBOUNCE_MS / 1000.0  # Convert to seconds
         self.last_state = GPIO.HIGH
 
-        # Set up GPIO
-        GPIO.setmode(GPIO.BCM)
+        # Set up GPIO pin (assumes GPIO.setmode() already called)
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
         print(f"IR Sensor initialized on GPIO {self.pin}")

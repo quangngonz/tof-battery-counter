@@ -41,11 +41,14 @@ def main():
     # Initialize hardware
     print("\nInitializing hardware...")
 
+    # Set GPIO mode first (BCM numbering)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+
     # Initialize IR sensor
     sensor = IRSensor()
 
     # Initialize LED
-    GPIO.setmode(GPIO.BCM)
     GPIO.setup(LED_PIN, GPIO.OUT)
     GPIO.output(LED_PIN, GPIO.LOW)
     print(f"LED initialized on GPIO {LED_PIN}")
