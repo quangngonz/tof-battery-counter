@@ -41,15 +41,7 @@ class ST7789:
             self.width = width
             self.height = height
 
-        # Setup GPIO
-        try:
-            GPIO.cleanup()  # Clean up any previous GPIO usage
-        except:
-            pass
-
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-
+        # Setup GPIO pins (assumes GPIO.setmode() already called)
         self.dc_pin = dc_pin
         self.rst_pin = rst_pin
         self.bl_pin = bl_pin
