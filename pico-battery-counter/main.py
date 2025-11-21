@@ -4,12 +4,14 @@ Fetches current time from NTP server and displays on 240x320 TFT
 """
 
 import time
-import ntptime
-from machine import Pin, SPI
+import requests
+import json
+from gpiozero import OutputDevice, SPIDevice
+from spidev import SpiDev
 from utils.st7789 import ST7789
 
 # Time server configuration
-TIMEZONE_OFFSET = 0  # Adjust for your timezone (hours from UTC)
+TIME_API_URL = "http://worldtimeapi.org/api/ip"
 
 # GPIO Pin Configuration for Raspberry Pi 4
 # Display pinout: BL, CS, DC, RES, SDA, SCL, VCC, GND
@@ -40,19 +42,29 @@ GRAY = 0x8410
 
 
 def get_time_from_server():
-    """Fetch current time from NTP server"""
+    """Fetch current time from World Time API"""
     try:
-        print("Fetching time from NTP server...")
-        ntptime.settime()
+        print("Fetching time from server...")
+        response = requests.get(TIME_API_URL, timeout=5)
+        data = json.loads(response.text)
+        response.close()
 
-        # Get current time
-        current_time = time.localtime()
+        # Parse datetime string (format: 2025-11-21T10:30:45.123456+08:00)
+        datetime_str = data['datetime']
+        # Extract date and time parts
+        date_part, time_part = datetime_str.split('T')
+        year, month, day = map(int, date_part.split('-'))
+        time_part = time_part.split('+')[0].split('-')[0]  # Remove timezone
+        hour, minute, second = time_part.split(':')[:3]
+        hour, minute = int(hour), int(minute)
+        second = int(float(second))
 
-        # Apply timezone offset
-        timestamp = time.mktime(current_time) + (TIMEZONE_OFFSET * 3600)
-        adjusted_time = time.localtime(timestamp)
+        # Get day of week (0=Monday)
+        weekday = data['day_of_week']
 
-        return adjusted_time
+        # Return as time tuple: (year, month, day, hour, minute, second, weekday, yearday)
+        return (year, month, day, hour, minute, second, weekday, 0)
+
     except Exception as e:
         print(f"Error fetching time: {e}")
         return None
@@ -92,14 +104,16 @@ def init_display():
     print("Initializing display...")
 
     # Initialize SPI
-    spi = SPI(SPI_BUS, baudrate=40000000, polarity=0, phase=0,
-              sck=Pin(SCK_PIN), mosi=Pin(MOSI_PIN))
+    spi = SpiDev()
+    spi.open(SPI_BUS, 0)  # Bus 0, Device 0 (CE0)
+    spi.max_speed_hz = 40000000
+    spi.mode = 0
 
-    # Initialize control pins
-    dc = Pin(DC_PIN, Pin.OUT)
-    rst = Pin(RST_PIN, Pin.OUT)
-    cs = Pin(CS_PIN, Pin.OUT)
-    bl = Pin(BL_PIN, Pin.OUT) if BL_PIN else None
+    # Initialize control pins using gpiozero
+    dc = OutputDevice(DC_PIN)
+    rst = OutputDevice(RST_PIN)
+    cs = OutputDevice(CS_PIN)
+    bl = OutputDevice(BL_PIN) if BL_PIN else None
 
     # Create display instance
     display = ST7789(spi, DISPLAY_WIDTH, DISPLAY_HEIGHT,
@@ -117,7 +131,7 @@ def draw_time_display(display, time_data):
     if time_data is None:
         # Show error message
         display.text("Time Error", 60, 140, RED, 2)
-        display.text("Check NTP", 60, 160, RED, 2)
+        display.text("Check API", 60, 160, RED, 2)
         return
 
     # Format time components
@@ -157,9 +171,9 @@ def main():
     display.text("Starting...", 70, 140, WHITE, 2)
     time.sleep(1)
 
-    # Sync time from NTP
+    # Sync time from server
     display.fill(BLACK)
-    display.text("Syncing NTP", 60, 140, CYAN, 2)
+    display.text("Syncing Time", 55, 140, CYAN, 2)
     time.sleep(1)
 
     # Main loop - update time every second

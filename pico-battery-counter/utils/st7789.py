@@ -1,25 +1,23 @@
 """
-ST7789 Display Driver for MicroPython
-Optimized for Raspberry Pi Pico W
-Supports 320x480 displays like T320H8-C40-11
+ST7789 Display Driver for Raspberry Pi 4
+Supports 240x320 and other ST7789 displays
 """
 
-from micropython import const
 import time
-import ustruct as struct
+import struct
 
 # ST7789 Commands
-_SWRESET = const(0x01)
-_SLPOUT = const(0x11)
-_COLMOD = const(0x3A)
-_MADCTL = const(0x36)
-_CASET = const(0x2A)
-_RASET = const(0x2B)
-_RAMWR = const(0x2C)
-_INVON = const(0x21)
-_INVOFF = const(0x20)
-_DISPON = const(0x29)
-_DISPOFF = const(0x28)
+_SWRESET = 0x01
+_SLPOUT = 0x11
+_COLMOD = 0x3A
+_MADCTL = 0x36
+_CASET = 0x2A
+_RASET = 0x2B
+_RAMWR = 0x2C
+_INVON = 0x21
+_INVOFF = 0x20
+_DISPON = 0x29
+_DISPOFF = 0x28
 
 
 class ST7789:
@@ -33,12 +31,12 @@ class ST7789:
         self.backlight = backlight
 
         # Initialize pins
-        self.reset.value(1)
-        self.dc.value(0)
-        self.cs.value(1)
+        self.reset.on()
+        self.dc.off()
+        self.cs.on()
 
         if self.backlight:
-            self.backlight.value(1)
+            self.backlight.on()
 
         # Initialize display
         self._init_display()
@@ -46,36 +44,36 @@ class ST7789:
 
     def _write_cmd(self, cmd):
         """Write command to display"""
-        self.cs.value(0)
-        self.dc.value(0)
-        self.spi.write(bytearray([cmd]))
-        self.cs.value(1)
+        self.cs.off()
+        self.dc.off()
+        self.spi.writebytes([cmd])
+        self.cs.on()
 
     def _write_data(self, data):
         """Write data to display"""
-        self.cs.value(0)
-        self.dc.value(1)
+        self.cs.off()
+        self.dc.on()
         if isinstance(data, int):
-            self.spi.write(bytearray([data]))
+            self.spi.writebytes([data])
         else:
-            self.spi.write(data)
-        self.cs.value(1)
+            self.spi.writebytes(data)
+        self.cs.on()
 
     def _init_display(self):
         """Initialize the ST7789 display"""
         # Hardware reset
-        self.reset.value(0)
-        time.sleep_ms(50)
-        self.reset.value(1)
-        time.sleep_ms(50)
+        self.reset.off()
+        time.sleep(0.05)
+        self.reset.on()
+        time.sleep(0.05)
 
         # Software reset
         self._write_cmd(_SWRESET)
-        time.sleep_ms(150)
+        time.sleep(0.15)
 
         # Sleep out
         self._write_cmd(_SLPOUT)
-        time.sleep_ms(120)
+        time.sleep(0.12)
 
         # Color mode - 16-bit color (RGB565)
         self._write_cmd(_COLMOD)
@@ -86,7 +84,7 @@ class ST7789:
 
         # Display on
         self._write_cmd(_DISPON)
-        time.sleep_ms(100)
+        time.sleep(0.1)
 
     def set_rotation(self, rotation):
         """Set display rotation (0, 1, 2, 3)"""
@@ -233,10 +231,10 @@ class ST7789:
         """Turn off display"""
         self._write_cmd(_DISPOFF)
         if self.backlight:
-            self.backlight.value(0)
+            self.backlight.off()
 
     def power_on(self):
         """Turn on display"""
         self._write_cmd(_DISPON)
         if self.backlight:
-            self.backlight.value(1)
+            self.backlight.on()
