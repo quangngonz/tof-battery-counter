@@ -327,9 +327,9 @@ class TFT:
             draw.text((160, 180), f"{water:.2f} L", fill=(
                 255, 200, 150), font=font_medium)
 
-            # Display live time in the top-right corner
-            draw.text((self.display.width - 120, 10), self.current_time,
-                      fill=(255, 255, 255), font=font_medium)
+            # Display live time in the top-right corner with smaller font size
+            draw.text((self.display.width - 80, 10), self.current_time,
+                      fill=(255, 255, 255), font=font_small)
 
             # Display the image
             self.display.display_image(img)
