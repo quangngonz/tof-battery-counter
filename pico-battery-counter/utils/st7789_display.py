@@ -196,3 +196,109 @@ class ST7789:
             pass
         self.spi.close()
         GPIO.cleanup()
+
+
+class TFT:
+    """
+    High-level TFT display wrapper for battery counter statistics
+    """
+
+    def __init__(self):
+        """
+        Initialize the TFT display with default settings
+        """
+        try:
+            # Initialize ST7789 display with common settings
+            # Adjust these parameters based on your specific display
+            self.display = ST7789(
+                spi_bus=0,
+                spi_device=0,
+                dc_pin=9,
+                rst_pin=25,
+                bl_pin=13,
+                width=240,
+                height=320,
+                rotation=90  # Landscape mode
+            )
+            self.display.clear((0, 0, 0))  # Clear to black
+            print("TFT Display initialized")
+        except Exception as e:
+            print(f"Failed to initialize TFT display: {e}")
+            self.display = None
+
+    def show(self, total, soil, water):
+        """
+        Display battery counter statistics on the TFT
+
+        Args:
+            total: Total battery count
+            soil: Estimated soil pollution (kg)
+            water: Estimated water pollution (L)
+        """
+        if self.display is None:
+            return
+
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+
+            # Create image
+            img = Image.new('RGB', (self.display.width,
+                            self.display.height), (0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            # Try to use a default font, fallback to basic if not available
+            try:
+                font_large = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+                font_medium = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+                font_small = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+            except:
+                font_large = ImageFont.load_default()
+                font_medium = ImageFont.load_default()
+                font_small = ImageFont.load_default()
+
+            # Draw title
+            draw.text((10, 10), "Battery Counter", fill=(
+                255, 255, 255), font=font_medium)
+
+            # Draw separator line
+            draw.line([(10, 45), (310, 45)], fill=(100, 100, 100), width=2)
+
+            # Draw total count
+            draw.text((10, 60), "Total Batteries:", fill=(
+                100, 200, 255), font=font_medium)
+            draw.text((10, 90), f"{int(total)}", fill=(
+                255, 255, 255), font=font_large)
+
+            # Draw separator
+            draw.line([(10, 140), (310, 140)], fill=(100, 100, 100), width=1)
+
+            # Draw soil pollution
+            draw.text((10, 155), "Soil Impact:", fill=(
+                255, 150, 100), font=font_small)
+            draw.text((10, 180), f"{soil:.2f} kg", fill=(
+                255, 200, 150), font=font_medium)
+
+            # Draw water pollution
+            draw.text((160, 155), "Water Impact:", fill=(
+                100, 150, 255), font=font_small)
+            draw.text((160, 180), f"{water:.2f} L", fill=(
+                150, 200, 255), font=font_medium)
+
+            # Display the image
+            self.display.display_image(img)
+
+        except Exception as e:
+            print(f"Error updating display: {e}")
+
+    def cleanup(self):
+        """
+        Clean up display resources
+        """
+        if self.display is not None:
+            try:
+                self.display.cleanup()
+            except Exception as e:
+                print(f"Error cleaning up display: {e}")

@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""
+Main application for Raspberry Pi 4 battery counter
+Counts IR beam breaks, caches events, syncs to cloud, and displays statistics
+"""
+
+import RPi.GPIO as GPIO
+import time
+import signal
+import sys
+
+# Import project modules
+from config import LED_PIN, MAIN_LOOP_SLEEP, STATS_UPDATE_INTERVAL_LOOPS
+from utils.sensor import IRSensor
+from utils.sync import add_record, start_sync_thread, stop_sync_thread, fetch_stats, load_cache
+from utils.st7789_display import TFT
+
+
+def cleanup_handler(signum, frame):
+    """
+    Handle cleanup on exit signals
+    """
+    print("\nShutting down gracefully...")
+    stop_sync_thread()
+    GPIO.cleanup()
+    sys.exit(0)
+
+
+def main():
+    """
+    Main application loop
+    """
+    print("=" * 50)
+    print("Battery Counter - Raspberry Pi 4")
+    print("=" * 50)
+
+    # Register signal handlers for clean shutdown
+    signal.signal(signal.SIGINT, cleanup_handler)
+    signal.signal(signal.SIGTERM, cleanup_handler)
+
+    # Initialize hardware
+    print("\nInitializing hardware...")
+
+    # Initialize IR sensor
+    sensor = IRSensor()
+
+    # Initialize LED
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(LED_PIN, GPIO.OUT)
+    GPIO.output(LED_PIN, GPIO.LOW)
+    print(f"LED initialized on GPIO {LED_PIN}")
+
+    # Initialize TFT display (optional)
+    try:
+        tft = TFT()
+    except Exception as e:
+        print(f"Display initialization failed: {e}")
+        print("Continuing without display...")
+        tft = None
+
+    # Start background sync thread
+    print("\nStarting background sync thread...")
+    start_sync_thread()
+
+    # Application state
+    loop_counter = 0
+    last_stats = {
+        "total": 0,
+        "soil": 0,
+        "water": 0
+    }
+
+    print("\n" + "=" * 50)
+    print("System ready! Monitoring IR sensor...")
+    print("=" * 50 + "\n")
+
+    # Main loop
+    try:
+        while True:
+            # Turn LED on during active monitoring
+            GPIO.output(LED_PIN, GPIO.HIGH)
+
+            # Check for IR beam break
+            if sensor.check():
+                print(f"\n*** BATTERY DETECTED! ***")
+                add_record()
+
+                # Brief LED blink to indicate detection
+                GPIO.output(LED_PIN, GPIO.LOW)
+                time.sleep(0.1)
+                GPIO.output(LED_PIN, GPIO.HIGH)
+                time.sleep(0.1)
+
+            # Periodic stats update
+            if loop_counter % STATS_UPDATE_INTERVAL_LOOPS == 0:
+                # Fetch fresh stats from API
+                new_stats = fetch_stats()
+                if new_stats is not None:
+                    last_stats = new_stats
+                    print(f"\nStats updated from API: {last_stats}")
+
+                # Calculate display values including unsynced records
+                unsynced = len(load_cache())
+                total_display = last_stats["total"] + unsynced
+                soil_display = last_stats["soil"] + (unsynced * 0.02)
+                water_display = last_stats["water"] + (unsynced * 0.15)
+
+                print(
+                    f"Display values: Total={total_display}, Soil={soil_display:.2f}kg, Water={water_display:.2f}L")
+                print(f"Unsynced records: {unsynced}")
+
+                # Update TFT display if available
+                if tft is not None:
+                    tft.show(total_display, soil_display, water_display)
+
+            # Turn LED off
+            GPIO.output(LED_PIN, GPIO.LOW)
+
+            # Increment loop counter
+            loop_counter += 1
+
+            # Non-blocking sleep
+            time.sleep(MAIN_LOOP_SLEEP)
+
+    except KeyboardInterrupt:
+        print("\n\nKeyboard interrupt received...")
+        cleanup_handler(None, None)
+
+    except Exception as e:
+        print(f"\n\nUnexpected error in main loop: {e}")
+        cleanup_handler(None, None)
+
+
+if __name__ == "__main__":
+    main()

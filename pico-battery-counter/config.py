@@ -1,0 +1,26 @@
+"""
+Configuration constants for the IR sensor battery counter
+"""
+
+# API Endpoints
+API_LOG = "https://asep-battery-counter-api.vercel.app/log"
+API_STATS = "https://asep-battery-counter-api.vercel.app/stats"
+
+# GPIO Configuration (BCM numbering)
+IR_PIN = 15
+LED_PIN = 14
+
+# Device Configuration
+DEVICE_ID = "rpi4_1"
+
+# File Paths
+CACHE_FILE = "cache.json"
+
+# Network Configuration
+WIFI_CHECK_HOST = "8.8.8.8"
+
+# Timing Configuration
+DEBOUNCE_MS = 150
+SYNC_INTERVAL_SECONDS = 5
+STATS_UPDATE_INTERVAL_LOOPS = 100
+MAIN_LOOP_SLEEP = 0.05
