@@ -1,13 +1,15 @@
 [Unit]
-Description=Run the Battery Counter Display on Startup
-After=multi-user.target
+Description=Battery Counter Display Service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-User=asephntl
-WorkingDirectory=/Users/quangngo/Documents/Data/Quang's Life/asep_project/battery-counter/pico-battery-counter
-ExecStart=/usr/bin/python3 main.py
+User=asep
+WorkingDirectory=/home/asep/Documents/asep-battery-counter/pico-battery-counter
+ExecStart=/usr/bin/python3 /home/asep/Documents/asep-battery-counter/pico-battery-counter/main.py
 Restart=always
+RestartSec=10
 Environment="PYTHONUNBUFFERED=1"
 
 [Install]
