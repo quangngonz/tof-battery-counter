@@ -29,17 +29,25 @@ alter table public.battery_logs enable row level security;
 -- ============================================================
 -- Security Policies
 -- ============================================================
--- If your Express server uses the SERVICE_ROLE_KEY, it bypasses RLS.
--- You don't need extra policies in that case.
---
--- Optional: Policy for device-level insert access
--- (Uncomment if you want explicit policy control)
---
--- create policy "Allow inserts from service role"
--- on public.battery_logs
--- for insert
--- to service_role
--- using (true);
+-- Allow public read access for dashboard (anon key)
+create policy "Allow public read access"
+on public.battery_logs
+for select
+to anon, authenticated
+using (true);
+
+-- Allow inserts from service role (API server)
+create policy "Allow service role inserts"
+on public.battery_logs
+for insert
+to service_role
+using (true);
+
+-- ============================================================
+-- Enable Realtime
+-- ============================================================
+-- Enable realtime for the battery_logs table
+alter publication supabase_realtime add table battery_logs;
 
 -- ============================================================
 -- Notes
