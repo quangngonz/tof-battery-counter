@@ -17,7 +17,8 @@ MOSI_PIN = 10  # Pin 19 - GPIO10 (SPI0 MOSI) → SDA (data)
 DC_PIN = 9     # Pin 21 - GPIO9 (SPI0 MISO) → DC (data/command)
 RST_PIN = 25   # Pin 22 - GPIO25 → RES (reset)
 CS_PIN = 8     # Pin 24 - GPIO8 (SPI0 CE0) → CS (chip select)
-BL_PIN = 7     # Any free GPIO → BL (backlight)
+# Set to None to disable, or use GPIO like 18, 23, 24, etc. (Try 18 if 7 doesn't work)
+BL_PIN = None
 
 # Display Configuration
 WIDTH = 240
@@ -35,6 +36,11 @@ class ST7789:
         self.rotation = rotation
 
         # Setup GPIO
+        try:
+            GPIO.cleanup()  # Clean up any previous GPIO usage
+        except:
+            pass
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
@@ -42,9 +48,15 @@ class ST7789:
         self.rst_pin = rst_pin
         self.bl_pin = bl_pin
 
-        GPIO.setup(self.dc_pin, GPIO.OUT)
-        GPIO.setup(self.rst_pin, GPIO.OUT)
-        GPIO.setup(self.bl_pin, GPIO.OUT)
+        # Setup pins with error handling
+        try:
+            GPIO.setup(self.dc_pin, GPIO.OUT)
+            GPIO.setup(self.rst_pin, GPIO.OUT)
+            if bl_pin is not None:
+                GPIO.setup(self.bl_pin, GPIO.OUT)
+        except Exception as e:
+            print(f"GPIO setup error: {e}")
+            print("Trying to continue anyway...")
 
         # Setup SPI
         self.spi = spidev.SpiDev()
@@ -60,7 +72,11 @@ class ST7789:
         self._reset()
 
         # Turn on backlight
-        GPIO.output(self.bl_pin, GPIO.HIGH)
+        try:
+            if self.bl_pin is not None:
+                GPIO.output(self.bl_pin, GPIO.HIGH)
+        except Exception as e:
+            print(f"Backlight control error: {e}")
 
         # Initialization sequence
         self._send_command(0x01)  # Software reset
@@ -160,7 +176,11 @@ class ST7789:
 
     def cleanup(self):
         """Cleanup GPIO and SPI"""
-        GPIO.output(self.bl_pin, GPIO.LOW)
+        try:
+            if self.bl_pin is not None:
+                GPIO.output(self.bl_pin, GPIO.LOW)
+        except:
+            pass
         self.spi.close()
         GPIO.cleanup()
 
