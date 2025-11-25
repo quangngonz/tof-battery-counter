@@ -16,10 +16,14 @@ A Raspberry Pi 4 application that counts IR beam breaks (battery detections), ca
 - IR Break Beam Sensor (connected to GPIO 15)
 - LED (connected to GPIO 14)
 - ST7789 TFT Display (240x320, SPI)
-  - DC: GPIO 9
-  - RST: GPIO 25
-  - BL: GPIO 13
-  - SPI: Bus 0, Device 0
+  - **GND** → Ground
+  - **VCC** → 3.3V or 5V (check your display specs)
+  - **SCL** → GPIO 11 (SCLK/SPI Clock)
+  - **SDA** → GPIO 10 (MOSI/SPI Data)
+  - **RES** → GPIO 25 (Reset)
+  - **DC** → GPIO 9 (Data/Command)
+  - **CS** → GPIO 8 (CE0/SPI Chip Select)
+  - **BL** → GPIO 13 (Backlight)
 
 ## Project Structure
 
