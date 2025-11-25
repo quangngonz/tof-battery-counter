@@ -71,6 +71,8 @@ After wiring, check if the sensor is detected:
 
 ```bash
 i2cdetect -y 1
+i2cdetect -
+y 1
 ```
 
 You should see `52` (the default I2C address) in the output grid.
@@ -108,3 +110,31 @@ distance = sensor.read_distance()
 print(f"Distance: {distance} mm")
 sensor.cleanup()
 ```
+
+
+asephntl@raspberrypi:~/Documents/asep-battery-counter/pico-battery-counter/draft $ python test_tof050f.py
+TOF050F Sensor Test Suite
+========================================
+Select test to run:
+1. Basic connection test
+2. Continuous reading (10 seconds)
+3. Detection threshold test
+4. All tests
+
+Enter choice (1-4): 2
+
+=== TOF050F Continuous Reading Test ===
+Duration: 10 seconds
+
+TOF050F initialized on I2C bus 1, address 0x52
+ERROR: Sensor not found! Check wiring and I2C address.
+asephntl@raspberrypi:~/Documents/asep-battery-counter/pico-battery-counter/draft $ i2cdetect -y 1
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:                         -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+40: -- 41 42 -- -- -- -- -- -- 49 -- 4b -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- 5e -- 
+60: 60 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- -- 75 -- --                    
