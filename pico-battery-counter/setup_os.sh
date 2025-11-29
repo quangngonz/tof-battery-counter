@@ -147,7 +147,7 @@ install_python_packages() {
     
     for package in "${PYTHON_PACKAGES[@]}"; do
         print_info "Installing $package..."
-        sudo pip3 install "$package"
+        sudo pip3 install "$package --break-system-packages"
         print_success "$package installed"
     done
 }
