@@ -26,12 +26,12 @@ except ImportError:
 class VL6180X:
     """
     Driver for VL6180X Time-of-Flight Distance Sensor (TOF050C)
-    Default I2C address: 0x29
+    Default I2C address: 0x29 (as per Adafruit documentation)
 
     This sensor measures distances up to ~500mm (50cm) with 1mm resolution.
     """
 
-    DEFAULT_ADDRESS = 0x52
+    DEFAULT_ADDRESS = 0x29
     XSHUT_PIN = 17  # GPIO 17 (Pin 11)
 
     # Key register addresses
