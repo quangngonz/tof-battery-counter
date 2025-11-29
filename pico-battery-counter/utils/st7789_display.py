@@ -236,7 +236,7 @@ class TFT:
 
         threading.Thread(target=update_time, daemon=True).start()
 
-    def show(self, total, soil, water):
+    def show(self, total, soil, water, distance=None):
         """
         Display battery counter statistics on the TFT
 
@@ -244,6 +244,7 @@ class TFT:
             total: Total battery count
             soil: Estimated soil pollution (kg)
             water: Estimated water pollution (L)
+            distance: Current TOF sensor distance reading in mm (optional)
         """
         if self.display is None:
             return
@@ -332,6 +333,14 @@ class TFT:
             clock_y = 15  # Vertically center the clock in the top-right section
             draw.text((clock_x, clock_y), self.current_time,
                       fill=(255, 255, 255), font=font_small)
+
+            # Draw TOF sensor distance reading at bottom
+            if distance is not None:
+                distance_text = f"Distance: {distance}mm"
+                if distance < 0:
+                    distance_text = "Distance: ERROR"
+                draw.text((10, 215), distance_text, fill=(
+                    100, 255, 100), font=font_small)
 
             # Display the image
             self.display.display_image(img)

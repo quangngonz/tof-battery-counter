@@ -11,9 +11,9 @@ import sys
 
 # Import project modules
 from config import LED_PIN, MAIN_LOOP_SLEEP, STATS_UPDATE_INTERVAL_LOOPS
-from utils.sensor import IRSensor
 from utils.sync import add_record, start_sync_thread, stop_sync_thread, fetch_stats, load_cache
 from utils.st7789_display import TFT
+from utils.tof_sensor import TOFSensor
 
 
 def cleanup_handler(signum, frame):
@@ -45,8 +45,8 @@ def main():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
-    # Initialize IR sensor
-    sensor = IRSensor()
+    # Initialize TOF sensor
+    sensor = TOFSensor()
 
     # Initialize LED
     GPIO.setup(LED_PIN, GPIO.OUT)
@@ -74,16 +74,20 @@ def main():
     }
 
     print("\n" + "=" * 50)
-    print("System ready! Monitoring IR sensor...")
+    print("System ready! Monitoring TOF sensor...")
     print("=" * 50 + "\n")
 
     # Main loop
     try:
+        current_distance = -1
         while True:
             # Turn LED on during active monitoring
             GPIO.output(LED_PIN, GPIO.HIGH)
 
-            # Check for IR beam break
+            # Read current distance from TOF sensor
+            current_distance = sensor.read_distance()
+
+            # Check for TOF object detection
             if sensor.check():
                 print(f"\n*** BATTERY DETECTED! ***")
                 add_record()
@@ -114,7 +118,8 @@ def main():
 
                 # Update TFT display if available
                 if tft is not None:
-                    tft.show(total_display, soil_display, water_display)
+                    tft.show(total_display, soil_display,
+                             water_display, current_distance)
 
             # Turn LED off
             GPIO.output(LED_PIN, GPIO.LOW)
