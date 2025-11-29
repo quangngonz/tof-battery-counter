@@ -111,6 +111,7 @@ install_system_packages() {
     
     PACKAGES=(
         "python3"
+        "python3-full"
         "python3-pip"
         "python3-dev"
         "python3-pil"
@@ -130,11 +131,6 @@ install_system_packages() {
 # Install Python dependencies
 install_python_packages() {
     print_header "Installing Python Dependencies"
-    
-    # Upgrade pip first
-    print_info "Upgrading pip..."
-    sudo pip3 install --upgrade pip --break-system-packages
-    print_success "pip upgraded"
     
     # Install Python packages
     PYTHON_PACKAGES=(
