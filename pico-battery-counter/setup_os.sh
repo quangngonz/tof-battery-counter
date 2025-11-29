@@ -133,7 +133,7 @@ install_python_packages() {
     
     # Upgrade pip first
     print_info "Upgrading pip..."
-    sudo pip3 install --upgrade pip
+    sudo pip3 install --upgrade pip --break-system-packages
     print_success "pip upgraded"
     
     # Install Python packages
@@ -147,7 +147,7 @@ install_python_packages() {
     
     for package in "${PYTHON_PACKAGES[@]}"; do
         print_info "Installing $package..."
-        sudo pip3 install "$package --break-system-packages"
+        sudo pip3 install "$package" --break-system-packages
         print_success "$package installed"
     done
 }
