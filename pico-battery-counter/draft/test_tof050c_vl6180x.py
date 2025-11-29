@@ -8,7 +8,7 @@ Pinout:
 - SDA: I2C data line (GPIO 2 on Raspberry Pi)
 - SCL: I2C clock line (GPIO 3 on Raspberry Pi)
 - INT: Interrupt output (optional, can be left unconnected)
-- XSHUT: Shutdown pin (optional, pull low to shutdown, leave high/floating for normal operation)
+- XSHUT: Shutdown pin (GPIO 17, Pin 11) - must be HIGH to enable sensor
 """
 
 import time
@@ -16,6 +16,11 @@ try:
     import smbus2 as smbus
 except ImportError:
     import smbus
+
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    GPIO = None
 
 
 class VL6180X:
@@ -27,6 +32,7 @@ class VL6180X:
     """
 
     DEFAULT_ADDRESS = 0x29
+    XSHUT_PIN = 17  # GPIO 17 (Pin 11)
 
     # Key register addresses
     REG_IDENTIFICATION_MODEL_ID = 0x000
@@ -42,14 +48,33 @@ class VL6180X:
     REG_RESULT_INTERRUPT_STATUS_GPIO = 0x04F
     REG_RESULT_RANGE_VAL = 0x062
 
-    def __init__(self, bus_number=1, address=DEFAULT_ADDRESS):
+    def __init__(self, bus_number=1, address=DEFAULT_ADDRESS, xshut_pin=None):
         """
         Initialize VL6180X sensor
 
         Args:
             bus_number: I2C bus number (1 for Raspberry Pi 3/4/Zero 2)
             address: I2C address of the sensor (default 0x29)
+            xshut_pin: GPIO pin for XSHUT (default 17). Set to None to skip GPIO control.
         """
+        self.xshut_pin = xshut_pin if xshut_pin is not None else self.XSHUT_PIN
+        self.gpio_enabled = False
+
+        # Setup XSHUT pin to enable sensor
+        if GPIO is not None and self.xshut_pin is not None:
+            try:
+                GPIO.setmode(GPIO.BCM)
+                GPIO.setup(self.xshut_pin, GPIO.OUT)
+                GPIO.output(self.xshut_pin, GPIO.HIGH)  # Enable sensor
+                self.gpio_enabled = True
+                print(
+                    f"XSHUT pin (GPIO {self.xshut_pin}) set HIGH - sensor enabled")
+                time.sleep(0.1)  # Give sensor time to power up
+            except Exception as e:
+                print(f"Warning: Could not setup GPIO for XSHUT: {e}")
+        else:
+            print("Warning: RPi.GPIO not available or xshut_pin not specified")
+
         self.bus = smbus.SMBus(bus_number)
         self.address = address
         print(
@@ -225,9 +250,16 @@ class VL6180X:
 
     def cleanup(self):
         """
-        Close I2C bus connection
+        Close I2C bus connection and cleanup GPIO
         """
         self.bus.close()
+        if self.gpio_enabled and GPIO is not None:
+            try:
+                GPIO.output(self.xshut_pin, GPIO.LOW)  # Disable sensor
+                GPIO.cleanup(self.xshut_pin)
+                print("GPIO cleaned up")
+            except:
+                pass
 
 
 def test_sensor_detection():
@@ -400,7 +432,7 @@ def main():
     print("  SDA   → GPIO 2 (Pin 3)")
     print("  SCL   → GPIO 3 (Pin 5)")
     print("  INT   → Not connected (optional)")
-    print("  XSHUT → Not connected (leave high for normal operation)")
+    print("  XSHUT → GPIO 17 (Pin 11) - REQUIRED for sensor activation")
     print("\nMake sure I2C is enabled on your Raspberry Pi!")
     print("Run: sudo raspi-config → Interface Options → I2C → Enable")
 
