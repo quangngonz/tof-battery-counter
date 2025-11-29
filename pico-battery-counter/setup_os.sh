@@ -56,9 +56,15 @@ check_raspberry_pi() {
     ARCH=$(uname -m)
     print_info "Architecture: $ARCH"
     
-    if [[ "$ARCH" != "armv7l" && "$ARCH" != "armv6l" ]]; then
-        print_warning "This script is designed for 32-bit Raspberry Pi OS (armv7l/armv6l)"
-        print_warning "Detected: $ARCH"
+    if [[ "$ARCH" != "armv7l" && "$ARCH" != "armv6l" && "$ARCH" != "aarch64" ]]; then
+        print_warning "This script is designed for Raspberry Pi OS (32-bit or 64-bit)"
+        print_warning "Detected: $ARCH - This may not be compatible"
+    else
+        if [[ "$ARCH" == "aarch64" ]]; then
+            print_success "64-bit Raspberry Pi OS detected"
+        else
+            print_success "32-bit Raspberry Pi OS detected"
+        fi
     fi
 }
 
