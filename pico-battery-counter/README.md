@@ -1,430 +1,441 @@
-# Battery Counter - Raspberry Pi 4
+# Battery Counter - Raspberry Pi Setup Guide
 
-A Raspberry Pi 4 application that counts IR beam breaks (battery detections), caches events locally, syncs them to a cloud API, and displays real-time statistics on a TFT display.
+A battery detection and counting system using a VL6180X Time-of-Flight (TOF) sensor and ST7789 TFT display on Raspberry Pi (32-bit).
 
-## Features
+## 📋 Table of Contents
 
-- **Non-blocking IR Sensor Detection**: Hardware-debounced beam break counting
-- **Local Caching**: Unsent events stored in JSON for reliability
-- **Background Sync**: Asynchronous cloud synchronization via threading
-- **TFT Display**: Real-time statistics visualization (ST7789)
-- **LED Indicator**: Visual feedback for system activity
+- [Hardware Requirements](#hardware-requirements)
+- [System Requirements](#system-requirements)
+- [Initial Raspberry Pi Setup](#initial-raspberry-pi-setup)
+- [Hardware Connections](#hardware-connections)
+- [Software Installation](#software-installation)
+- [Configuration](#configuration)
+- [Service Management](#service-management)
+- [Troubleshooting](#troubleshooting)
 
-## Hardware Requirements
+---
 
-- Raspberry Pi 4 (running full Linux)
-- IR Break Beam Sensor (connected to GPIO 15)
-- LED (connected to GPIO 14)
-- ST7789 TFT Display (240x320, SPI)
-  - **GND** → Ground
-  - **VCC** → 3.3V or 5V (check your display specs)
-  - **SCL** → GPIO 11 (SCLK/SPI Clock)
-  - **SDA** → GPIO 10 (MOSI/SPI Data)
-  - **RES** → GPIO 25 (Reset)
-  - **DC** → GPIO 9 (Data/Command)
-  - **CS** → GPIO 8 (CE0/SPI Chip Select)
-  - **BL** → GPIO 13 (Backlight)
+## 🔧 Hardware Requirements
 
-## Project Structure
+- **Raspberry Pi** (32-bit OS compatible)
+  - Tested on: Raspberry Pi 4, Pi 3, Zero 2 W
+- **VL6180X Time-of-Flight Distance Sensor (TOF050C)**
+  - Non-blocking sensor with threshold-based detection
+  - I2C interface
+- **ST7789 TFT Display**
+  - 240x320 pixels
+  - SPI interface
+- **LED** (for status indication)
+- **MicroSD Card** (16GB+ recommended)
+- **Power Supply** (5V, 3A recommended for Pi 4)
 
+---
+
+## 💻 System Requirements
+
+- **OS**: Raspberry Pi OS (32-bit) - Legacy or Bullseye
+- **Python**: 3.7+
+- **Internet Connection**: Required for cloud sync functionality
+
+---
+
+## 🚀 Initial Raspberry Pi Setup
+
+### 1. Install Raspberry Pi OS (32-bit)
+
+Download and flash **Raspberry Pi OS (32-bit)** to your microSD card:
+
+```bash
+# Use Raspberry Pi Imager or download from:
+# https://www.raspberrypi.com/software/operating-systems/
+
+# Choose: "Raspberry Pi OS (Legacy, 32-bit)" or "Raspberry Pi OS (32-bit)"
 ```
-project/
-├── main.py                 # Main application loop
-├── config.py              # Configuration constants
-├── requirements.txt       # Python dependencies
-├── cache.json            # Local event cache (auto-generated)
-├── utils/
-│   ├── __init__.py
-│   ├── sensor.py         # IR sensor with debouncing
-│   ├── sync.py           # Cache management & API sync
-│   └── st7789_display.py # TFT display driver & wrapper
-└── draft/                # Development examples
+
+### 2. Enable Required Interfaces
+
+After booting your Raspberry Pi, enable I2C and SPI:
+
+```bash
+sudo raspi-config
 ```
 
-## Installation
+Navigate to:
+- **Interface Options** → **I2C** → Enable
+- **Interface Options** → **SPI** → Enable
+- **Finish** and reboot
 
-### 1. System Setup
+Or enable via command line:
 
-Ensure your Raspberry Pi 4 is running a recent version of Raspberry Pi OS:
+```bash
+sudo raspi-config nonint do_i2c 0
+sudo raspi-config nonint do_spi 0
+sudo reboot
+```
+
+### 3. Update System
 
 ```bash
 sudo apt update
 sudo apt upgrade -y
 ```
 
-### 2. Enable SPI
+---
+
+## 🔌 Hardware Connections
+
+### VL6180X TOF Sensor (I2C)
+
+| VL6180X Pin | Raspberry Pi Pin | BCM GPIO |
+|-------------|------------------|----------|
+| VCC         | 3.3V (Pin 1)     | -        |
+| GND         | Ground (Pin 6)   | -        |
+| SDA         | SDA (Pin 3)      | GPIO 2   |
+| SCL         | SCL (Pin 5)      | GPIO 3   |
+| XSHUT       | GPIO 17 (Pin 11) | GPIO 17  |
+
+### ST7789 TFT Display (SPI)
+
+| ST7789 Pin | Raspberry Pi Pin | BCM GPIO |
+|------------|------------------|----------|
+| VCC        | 3.3V (Pin 17)    | -        |
+| GND        | Ground (Pin 20)  | -        |
+| SCL/SCK    | SCLK (Pin 23)    | GPIO 11  |
+| SDA/MOSI   | MOSI (Pin 19)    | GPIO 10  |
+| RES/RST    | GPIO 25 (Pin 22) | GPIO 25  |
+| DC         | GPIO 9 (Pin 21)  | GPIO 9   |
+| BL         | GPIO 13 (Pin 33) | GPIO 13  |
+
+### Status LED
+
+| Component | Raspberry Pi Pin | BCM GPIO |
+|-----------|------------------|----------|
+| LED (+)   | GPIO 14 (Pin 8)  | GPIO 14  |
+| LED (-)   | Ground via 220Ω  | -        |
+
+> **Note**: Use a current-limiting resistor (220Ω - 330Ω) for the LED.
+
+---
+
+## 📦 Software Installation
+
+### 1. Install System Dependencies
 
 ```bash
-sudo raspi-config
-# Navigate to: Interface Options → SPI → Enable
+sudo apt install -y python3 python3-pip python3-dev python3-pil \
+    i2c-tools git libjpeg-dev zlib1g-dev libfreetype6-dev
 ```
 
-Reboot after enabling SPI:
+### 2. Install Python Dependencies
 
 ```bash
-sudo reboot
+# Install RPi.GPIO
+sudo pip3 install RPi.GPIO
+
+# Install SPI library
+sudo pip3 install spidev
+
+# Install I2C library (smbus2)
+sudo pip3 install smbus2
+
+# Install Pillow for display graphics
+sudo pip3 install Pillow
+
+# Install requests for API communication
+sudo pip3 install requests
 ```
 
-### 3. Install Python Dependencies
+### 3. Clone/Download Project
 
 ```bash
-cd /path/to/pico-battery-counter
-pip3 install -r requirements.txt
+# Navigate to your preferred directory
+cd ~
+
+# If using git:
+git clone <your-repository-url> battery-counter
+cd battery-counter
+
+# Or manually copy the project files to ~/battery-counter
 ```
 
-Or install system-wide:
+### 4. Verify I2C and SPI
+
+Check if the TOF sensor is detected:
 
 ```bash
-sudo pip3 install -r requirements.txt
+sudo i2cdetect -y 1
 ```
 
-## Configuration
+You should see device at address `0x29`.
 
-Edit `config.py` to customize:
+Check SPI devices:
+
+```bash
+ls -l /dev/spidev*
+```
+
+You should see `/dev/spidev0.0` and `/dev/spidev0.1`.
+
+---
+
+## ⚙️ Configuration
+
+### Edit Configuration File
+
+Open `config.py` and adjust settings as needed:
+
+```bash
+nano config.py
+```
+
+**Key Configuration Options:**
 
 ```python
-# API Endpoints
-API_LOG = "https://asep-battery-counter-api.vercel.app/log"
-API_STATS = "https://asep-battery-counter-api.vercel.app/stats"
+# API Endpoints (update with your backend URL)
+API_LOG = "https://your-api-url.com/log"
+API_STATS = "https://your-api-url.com/stats"
+
+# Device Identification
+DEVICE_ID = "rpi4_1"  # Change to unique ID for each device
 
 # GPIO Pins (BCM numbering)
-IR_PIN = 15
 LED_PIN = 14
+TOF_XSHUT_PIN = 17
 
-# Device Identifier
-DEVICE_ID = "rpi4_1"
+# TOF Sensor Settings
+TOF_I2C_BUS = 1
+TOF_ADDRESS = 0x29
+TOF_THRESHOLD_MM = 100  # Detection threshold in millimeters
 
 # Timing
-DEBOUNCE_MS = 150
-SYNC_INTERVAL_SECONDS = 5
-STATS_UPDATE_INTERVAL_LOOPS = 100
+SYNC_INTERVAL_SECONDS = 5  # How often to sync with cloud
+STATS_UPDATE_INTERVAL_LOOPS = 100  # Display update frequency
+MAIN_LOOP_SLEEP = 0.05  # Main loop delay (50ms)
 ```
 
-## Usage
+---
 
-### Run the Application
+## 🎯 Running the Application
+
+### Manual Testing
+
+Run the application manually to test:
 
 ```bash
+cd ~/battery-counter
 python3 main.py
 ```
 
-### Run on Boot (Optional)
+You should see:
+- Initialization messages
+- TOF sensor detection
+- Display updates
+- Battery detection events
 
-Create a systemd service:
+Press `Ctrl+C` to stop.
 
-```bash
-sudo nano /etc/systemd/system/battery-counter.service
-```
+---
 
-Add:
+## 🔄 Service Management
 
-```ini
-[Unit]
-Description=Battery Counter Service
-After=network.target
+### Setup as System Service
 
-[Service]
-Type=simple
-User=pi
-WorkingDirectory=/home/pi/pico-battery-counter
-ExecStart=/usr/bin/python3 /home/pi/pico-battery-counter/main.py
-Restart=always
-RestartSec=10
+The application can run automatically on boot using systemd.
 
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
+### 1. Run Setup Script
 
 ```bash
-sudo systemctl enable battery-counter.service
-sudo systemctl start battery-counter.service
-sudo systemctl status battery-counter.service
+cd ~/battery-counter
+chmod +x setup_service.sh
+./setup_service.sh
 ```
 
-## Service Management
+This script will:
+- Update the service file with correct paths
+- Install the service to systemd
+- Enable auto-start on boot
+- Start the service immediately
 
-### Initial Setup
-
-To set up and run the battery-counter service on your Raspberry Pi:
-
-1. Make the setup script executable:
-
-   ```bash
-   chmod +x setup_service.sh
-   ```
-
-2. Run the setup script:
-
-   ```bash
-   ./setup_service.sh
-   ```
-
-This will copy the service file to the appropriate location, reload the systemd daemon, enable the service to run on startup, and start the service immediately.
-
-### Service Control Commands
+### 2. Manual Service Commands
 
 **Start the service:**
-
 ```bash
 sudo systemctl start battery-counter.service
 ```
 
 **Stop the service:**
-
 ```bash
 sudo systemctl stop battery-counter.service
 ```
 
 **Restart the service:**
-
 ```bash
 sudo systemctl restart battery-counter.service
 ```
 
 **Check service status:**
-
 ```bash
 sudo systemctl status battery-counter.service
 ```
 
-**Enable service on boot:**
-
+**Enable auto-start on boot:**
 ```bash
 sudo systemctl enable battery-counter.service
 ```
 
-**Disable service on boot:**
-
+**Disable auto-start:**
 ```bash
 sudo systemctl disable battery-counter.service
 ```
 
-### Viewing Logs
-
-**View real-time logs (follow mode):**
-
+**View live logs:**
 ```bash
 sudo journalctl -u battery-counter.service -f
 ```
 
-**View last 50 lines:**
-
+**View recent logs:**
 ```bash
-sudo journalctl -u battery-counter.service -n 50
+sudo journalctl -u battery-counter.service -n 100
 ```
 
-**View logs since today:**
+### 3. Service File Details
 
+The service file (`battery-counter.service`) contains:
+
+```ini
+[Unit]
+Description=Battery Counter Display Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi  # Will be auto-updated by setup script
+WorkingDirectory=/home/pi/battery-counter
+ExecStart=/usr/bin/python3 /home/pi/battery-counter/main.py
+Restart=always
+RestartSec=10
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### I2C Issues
+
+**Sensor not detected:**
 ```bash
-sudo journalctl -u battery-counter.service --since today
+# Check if I2C is enabled
+sudo raspi-config
+
+# Verify I2C devices
+sudo i2cdetect -y 1
+
+# Check I2C kernel modules
+lsmod | grep i2c
 ```
 
-**View logs with timestamps:**
-
+**Permission issues:**
 ```bash
-sudo journalctl -u battery-counter.service -o short-precise
+# Add user to i2c group
+sudo usermod -a -G i2c $USER
+# Logout and login again
 ```
 
-### After Git Push
+### SPI Issues
 
-When you push changes to the repository and pull them on the Raspberry Pi:
-
-1. **Pull the latest changes:**
-
-   ```bash
-   cd ~/Documents/asep-battery-counter/pico-battery-counter
-   git pull
-   ```
-
-2. **Restart the service to apply changes:**
-
-   ```bash
-   sudo systemctl restart battery-counter.service
-   ```
-
-3. **Verify the service is running:**
-
-   ```bash
-   sudo systemctl status battery-counter.service
-   ```
-
-4. **Monitor logs for any errors:**
-
-   ```bash
-   sudo journalctl -u battery-counter.service -f
-   ```
-
-**Note:** If you change the service file itself (`battery-counter.service`), you need to reload the systemd daemon:
-
+**Display not working:**
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl restart battery-counter.service
-```
+# Verify SPI is enabled
+ls -l /dev/spidev*
 
-## How It Works
-
-### Main Loop (`main.py`)
-
-1. Initializes IR sensor, LED, and TFT display
-2. Starts background sync thread
-3. Continuously monitors IR sensor (non-blocking)
-4. On detection:
-   - Adds record to local cache
-   - Provides LED feedback
-5. Every 100 loops:
-   - Fetches latest stats from API
-   - Calculates display values (API + unsynced)
-   - Updates TFT display
-
-### IR Sensor (`utils/sensor.py`)
-
-- Uses `RPi.GPIO` in BCM mode
-- Software debouncing with `time.monotonic()`
-- Detects falling edge (HIGH → LOW)
-- Returns `True` only once per event
-
-### Sync Module (`utils/sync.py`)
-
-**Cache Management:**
-
-- `load_cache()`: Load cached events from JSON
-- `save_cache()`: Save events to JSON
-- `add_record()`: Append new detection event
-
-**Networking:**
-
-- `has_internet()`: Quick ping test to 8.8.8.8
-- `fetch_stats()`: GET request to stats API
-
-**Background Thread:**
-
-- Runs every 5 seconds
-- Checks internet connectivity
-- POSTs cached records to API
-- Removes successfully synced records
-- Continues even if main loop blocks
-
-### Display (`utils/st7789_display.py`)
-
-- `ST7789`: Low-level SPI driver
-- `TFT`: High-level wrapper with `show()` method
-- Displays:
-  - Total battery count
-  - Soil impact (kg)
-  - Water impact (L)
-
-## API Integration
-
-### POST /log
-
-Submit a battery detection event:
-
-```json
-{
-  "timestamp": 1700000000,
-  "amount": 1,
-  "device": "rpi4_1"
-}
-```
-
-**Response:** `200 OK` on success
-
-### GET /stats
-
-Retrieve cumulative statistics:
-
-```json
-{
-  "total": 1234,
-  "soil": 24.68,
-  "water": 185.1
-}
-```
-
-## Troubleshooting
-
-### GPIO Permissions
-
-If you get permission errors:
-
-```bash
-sudo usermod -a -G gpio,spi $USER
-# Log out and back in
-```
-
-### Display Not Working
-
-Check SPI is enabled:
-
-```bash
+# Check SPI kernel modules
 lsmod | grep spi
-# Should show: spi_bcm2835
 ```
 
-Verify connections:
-
-- DC → GPIO 9
-- RST → GPIO 25
-- BL → GPIO 13
-- MOSI → GPIO 10
-- SCLK → GPIO 11
-- CS → GPIO 8
-
-### Import Errors
-
-Ensure packages are installed for Python 3:
+### GPIO Permission Issues
 
 ```bash
-pip3 list | grep -E "RPi.GPIO|requests|Pillow|spidev"
+# Add user to gpio group
+sudo usermod -a -G gpio $USER
+
+# Install gpio utilities
+sudo apt install rpi.gpio-common
 ```
 
-### Network Issues
-
-Test connectivity:
+### Service Not Starting
 
 ```bash
-ping -c 1 8.8.8.8
-curl https://asep-battery-counter-api.vercel.app/stats
+# Check service logs
+sudo journalctl -u battery-counter.service -n 50
+
+# Check for Python errors
+sudo systemctl status battery-counter.service
+
+# Verify file permissions
+ls -la ~/battery-counter/main.py
+
+# Make sure main.py is executable
+chmod +x ~/battery-counter/main.py
 ```
 
-## Environmental Impact Calculations
+### Display Shows Wrong Colors
 
-- **Soil pollution**: 0.02 kg per battery
-- **Water pollution**: 0.15 L per battery
+The ST7789 uses BGR color order. This is handled in the code, but if colors appear wrong:
+- Check the `rotation` parameter in `utils/st7789_display.py`
+- Verify the display model (some variants use RGB instead of BGR)
 
-These are approximate values for visualization purposes.
-
-## Development
-
-### Testing Without Hardware
-
-Comment out GPIO-dependent code or use GPIO emulation:
+### Network/API Issues
 
 ```bash
-pip3 install fake-rpi
+# Test internet connectivity
+ping -c 4 8.8.8.8
+
+# Check API endpoints
+curl https://your-api-url.com/stats
+
+# View sync logs
+sudo journalctl -u battery-counter.service | grep -i sync
 ```
 
-Add to top of scripts:
+### Cache File Issues
 
-```python
-import sys
-sys.modules['RPi'] = __import__('fake_rpi.RPi')
-sys.modules['RPi.GPIO'] = __import__('fake_rpi.RPi.GPIO')
+If the cache file gets corrupted:
+```bash
+cd ~/battery-counter
+rm cache.json
+# Service will recreate it automatically
 ```
 
-### Draft Files
+---
 
-The `draft/` folder contains standalone examples:
+## 📊 Understanding the System
 
-- `display_clock.py`: TFT clock demo
-- `st7789_hello_world.py`: Basic display test
+### How It Works
 
-## License
+1. **TOF Sensor**: Continuously monitors distance using VL6180X
+2. **Detection**: When object detected within threshold (default 100mm), battery is counted
+3. **Caching**: Events are cached locally in `cache.json`
+4. **Sync**: Background thread syncs cached events to cloud API every 5 seconds
+5. **Display**: TFT shows real-time statistics (total count, soil impact, water impact)
+6. **LED**: Blinks on detection, stays on during monitoring
 
-This project is part of the ASEP Battery Counter initiative.
+### File Structure
 
-## Support
-
-For issues or questions, please contact the project maintainer.
+```
+battery-counter/
+├── main.py                    # Main application entry point
+├── config.py                  # Configuration constants
+├── cache.json                 # Local event cache (auto-generated)
+├── battery-counter.service    # Systemd service file
+├── setup_service.sh          # Service installation script
+└── utils/
+    ├── __init__.py           # Package initialization
+    ├── tof_sensor.py         # VL6180X TOF sensor driver
+    ├── st7789_display.py     # ST7789 TFT display driver
+    └── sync.py               # Cloud sync and caching logic
+```

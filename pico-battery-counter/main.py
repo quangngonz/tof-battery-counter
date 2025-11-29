@@ -10,7 +10,7 @@ import signal
 import sys
 
 # Import project modules
-from config import LED_PIN, MAIN_LOOP_SLEEP, STATS_UPDATE_INTERVAL_LOOPS
+from config import LED_PIN, MAIN_LOOP_SLEEP, STATS_UPDATE_INTERVAL_LOOPS, SHOW_DISTANCE_MEASUREMENT
 from utils.sync import add_record, start_sync_thread, stop_sync_thread, fetch_stats, load_cache
 from utils.st7789_display import TFT
 from utils.tof_sensor import TOFSensor
@@ -55,7 +55,7 @@ def main():
 
     # Initialize TFT display (optional)
     try:
-        tft = TFT()
+        tft = TFT(show_distance=SHOW_DISTANCE_MEASUREMENT)
     except Exception as e:
         print(f"Display initialization failed: {e}")
         print("Continuing without display...")
@@ -72,6 +72,7 @@ def main():
         "soil": 0,
         "water": 0
     }
+    local_detections = 0  # Track detections since last sync to prevent double-counting
 
     print("\n" + "=" * 50)
     print("System ready! Monitoring TOF sensor...")
@@ -91,6 +92,18 @@ def main():
             if sensor.check():
                 print(f"\n*** BATTERY DETECTED! ***")
                 add_record()
+                local_detections += 1
+
+                # INSTANT TFT UPDATE - User sees it immediately!
+                if tft is not None:
+                    # Calculate instant display values
+                    unsynced = len(load_cache())
+                    total_display = last_stats["total"] + unsynced
+                    soil_display = last_stats["soil"] + (unsynced * 0.02)
+                    water_display = last_stats["water"] + (unsynced * 0.15)
+                    
+                    print(f"Instant update: Total={total_display}, Soil={soil_display:.2f}kg, Water={water_display:.2f}L")
+                    tft.show(total_display, soil_display, water_display, current_distance)
 
                 # Brief LED blink to indicate detection
                 GPIO.output(LED_PIN, GPIO.LOW)
@@ -103,8 +116,20 @@ def main():
                 # Fetch fresh stats from API
                 new_stats = fetch_stats()
                 if new_stats is not None:
+                    # Check if server has caught up with our local detections
+                    server_increase = new_stats["total"] - last_stats["total"]
+                    
+                    # Neutralize local detections that have been synced
+                    if server_increase >= local_detections:
+                        # Server has all our detections, reset counter
+                        local_detections = 0
+                    else:
+                        # Server hasn't caught up yet, adjust counter
+                        local_detections -= server_increase
+                    
                     last_stats = new_stats
                     print(f"\nStats updated from API: {last_stats}")
+                    print(f"Local detections pending sync: {local_detections}")
 
                 # Calculate display values including unsynced records
                 unsynced = len(load_cache())

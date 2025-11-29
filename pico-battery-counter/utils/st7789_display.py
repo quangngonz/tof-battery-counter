@@ -201,10 +201,15 @@ class TFT:
     High-level TFT display wrapper for battery counter statistics
     """
 
-    def __init__(self):
+    def __init__(self, show_distance=False):
         """
         Initialize the TFT display with default settings
+        
+        Args:
+            show_distance: Whether to display the TOF sensor distance measurement (default: True)
         """
+        self.show_distance = show_distance
+        
         try:
             # Initialize ST7789 display with common settings
             # Adjust these parameters based on your specific display
@@ -334,8 +339,8 @@ class TFT:
             draw.text((clock_x, clock_y), self.current_time,
                       fill=(255, 255, 255), font=font_small)
 
-            # Draw TOF sensor distance reading at bottom
-            if distance is not None:
+            # Draw TOF sensor distance reading at bottom (if enabled)
+            if self.show_distance and distance is not None:
                 distance_text = f"Distance: {distance}mm"
                 if distance < 0:
                     distance_text = "Distance: ERROR"
