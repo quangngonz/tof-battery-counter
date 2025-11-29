@@ -82,6 +82,37 @@ sudo apt upgrade -y
 
 ---
 
+## ⚡ Quick Setup (Automated)
+
+If you want to skip the manual installation steps, use the automated setup script:
+
+```bash
+# Navigate to the project directory
+cd ~/battery-counter
+
+# Make the setup script executable
+chmod +x setup_os.sh
+
+# Run the automated setup
+./setup_os.sh
+```
+
+**The script will automatically:**
+- ✅ Update system packages
+- ✅ Enable I2C and SPI interfaces
+- ✅ Install all system dependencies
+- ✅ Install all Python packages
+- ✅ Add your user to required groups (i2c, gpio, spi)
+- ✅ Create a `requirements.txt` file
+- ✅ Verify all installations
+- ✅ Prompt for reboot
+
+After the script completes and you reboot, skip to the [Hardware Connections](#hardware-connections) section.
+
+> **Note**: If you prefer manual installation or want to understand each step, continue with the sections below.
+
+---
+
 ## 🔌 Hardware Connections
 
 ### VL6180X TOF Sensor (I2C)
@@ -321,7 +352,7 @@ Environment="PYTHONUNBUFFERED=1"
 WantedBy=multi-user.target
 ```
 
----
+---p
 
 ## 🐛 Troubleshooting
 
