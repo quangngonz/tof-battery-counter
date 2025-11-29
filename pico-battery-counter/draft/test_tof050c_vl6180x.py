@@ -31,7 +31,7 @@ class VL6180X:
     This sensor measures distances up to ~500mm (50cm) with 1mm resolution.
     """
 
-    DEFAULT_ADDRESS = 0x29
+    DEFAULT_ADDRESS = 0x52
     XSHUT_PIN = 17  # GPIO 17 (Pin 11)
 
     # Key register addresses
