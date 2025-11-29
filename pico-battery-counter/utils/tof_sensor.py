@@ -149,6 +149,16 @@ class TOFSensor:
             else:
                 print("TOF Sensor: Already initialized")
 
+            # Configure interrupt system for range measurements
+            # Enable range interrupt on new sample ready (bit 2)
+            self._write_byte(self.REG_SYSTEM_INTERRUPT_CONFIG, 0x04)
+            
+            # Clear any pending interrupts
+            self._write_byte(self.REG_SYSTEM_INTERRUPT_CLEAR, 0x07)
+            
+            # Wait for sensor to stabilize after configuration
+            time.sleep(0.05)
+
         except Exception as e:
             print(f"TOF Sensor: Error during initialization: {e}")
             raise
