@@ -54,19 +54,31 @@ class TOFSensor:
         # Setup XSHUT pin to enable sensor
         if GPIO is not None and self.xshut_pin is not None:
             try:
+                # Ensure GPIO mode is set (safe to call multiple times)
+                try:
+                    GPIO.setmode(GPIO.BCM)
+                except ValueError:
+                    # Mode already set, which is fine
+                    pass
+
                 GPIO.setup(self.xshut_pin, GPIO.OUT)
                 GPIO.output(self.xshut_pin, GPIO.HIGH)  # Enable sensor
                 self.gpio_enabled = True
-                print(f"TOF Sensor: XSHUT pin (GPIO {self.xshut_pin}) set HIGH - sensor enabled")
+                print(
+                    f"TOF Sensor: XSHUT pin (GPIO {self.xshut_pin}) set HIGH - sensor enabled")
                 time.sleep(0.1)  # Give sensor time to power up
             except Exception as e:
-                print(f"TOF Sensor: Warning - Could not setup GPIO for XSHUT: {e}")
+                print(
+                    f"TOF Sensor: Warning - Could not setup GPIO for XSHUT: {e}")
+                import traceback
+                traceback.print_exc()
         else:
             print("TOF Sensor: Warning - GPIO not available or xshut_pin not specified")
 
         # Initialize I2C bus
         self.bus = smbus.SMBus(bus_number)
-        print(f"TOF Sensor: VL6180X initialized on I2C bus {bus_number}, address 0x{address:02X}")
+        print(
+            f"TOF Sensor: VL6180X initialized on I2C bus {bus_number}, address 0x{address:02X}")
         print(f"TOF Sensor: Detection threshold set to {threshold_mm}mm")
 
         # Initialize sensor
@@ -93,7 +105,8 @@ class TOFSensor:
         """Initialize the sensor with required settings"""
         try:
             # Check if sensor needs initialization
-            fresh_out_of_reset = self._read_byte(self.REG_SYSTEM_FRESH_OUT_OF_RESET)
+            fresh_out_of_reset = self._read_byte(
+                self.REG_SYSTEM_FRESH_OUT_OF_RESET)
 
             if fresh_out_of_reset == 1:
                 print("TOF Sensor: Loading default settings...")
@@ -183,22 +196,24 @@ class TOFSensor:
             bool: True if a new object is detected within threshold, False otherwise
         """
         current_time = time.monotonic()
-        
+
         # Read current distance
         distance = self.read_distance()
-        
+
         # Determine current state
-        current_state = (0 < distance < self.threshold_mm) if distance > 0 else False
-        
+        current_state = (
+            0 < distance < self.threshold_mm) if distance > 0 else False
+
         # Detect transition from no object to object detected
         if not self.last_state and current_state:
             # Check debounce timing
             if (current_time - self.last_trigger_time) >= self.debounce_time:
                 self.last_trigger_time = current_time
                 self.last_state = current_state
-                print(f"TOF Sensor: Object detected at {distance}mm (threshold: {self.threshold_mm}mm)")
+                print(
+                    f"TOF Sensor: Object detected at {distance}mm (threshold: {self.threshold_mm}mm)")
                 return True
-        
+
         self.last_state = current_state
         return False
 
