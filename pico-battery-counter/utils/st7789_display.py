@@ -204,12 +204,12 @@ class TFT:
     def __init__(self, show_distance=False):
         """
         Initialize the TFT display with default settings
-        
+
         Args:
             show_distance: Whether to display the TOF sensor distance measurement (default: True)
         """
         self.show_distance = show_distance
-        
+
         try:
             # Initialize ST7789 display with common settings
             # Adjust these parameters based on your specific display
@@ -322,13 +322,13 @@ class TFT:
             draw.line([(10, 140), (310, 140)], fill=(100, 100, 100), width=1)
 
             # Draw soil pollution
-            draw.text((10, 155), "Soil Impact:", fill=(
+            draw.text((10, 155), "Soil Saved:", fill=(
                 100, 150, 255), font=font_small)
-            draw.text((10, 180), f"{soil:.2f} kg", fill=(
+            draw.text((10, 180), f"{soil:.2f} m2", fill=(
                 150, 200, 255), font=font_medium)
 
             # Draw water pollution
-            draw.text((160, 155), "Water Impact:", fill=(
+            draw.text((160, 155), "Water Saved:", fill=(
                 255, 150, 100), font=font_small)
             draw.text((160, 180), f"{water:.2f} L", fill=(
                 255, 200, 150), font=font_medium)

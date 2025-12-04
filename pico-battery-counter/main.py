@@ -101,9 +101,11 @@ def main():
                     total_display = last_stats["total"] + unsynced
                     soil_display = last_stats["soil"] + (unsynced * 0.02)
                     water_display = last_stats["water"] + (unsynced * 0.15)
-                    
-                    print(f"Instant update: Total={total_display}, Soil={soil_display:.2f}kg, Water={water_display:.2f}L")
-                    tft.show(total_display, soil_display, water_display, current_distance)
+
+                    print(
+                        f"Instant update: Total={total_display}, Soil={soil_display:.2f}kg, Water={water_display:.2f}L")
+                    tft.show(total_display, soil_display,
+                             water_display, current_distance)
 
                 # Brief LED blink to indicate detection
                 GPIO.output(LED_PIN, GPIO.LOW)
@@ -118,7 +120,7 @@ def main():
                 if new_stats is not None:
                     # Check if server has caught up with our local detections
                     server_increase = new_stats["total"] - last_stats["total"]
-                    
+
                     # Neutralize local detections that have been synced
                     if server_increase >= local_detections:
                         # Server has all our detections, reset counter
@@ -126,7 +128,7 @@ def main():
                     else:
                         # Server hasn't caught up yet, adjust counter
                         local_detections -= server_increase
-                    
+
                     last_stats = new_stats
                     print(f"\nStats updated from API: {last_stats}")
                     print(f"Local detections pending sync: {local_detections}")
@@ -134,11 +136,11 @@ def main():
                 # Calculate display values including unsynced records
                 unsynced = len(load_cache())
                 total_display = last_stats["total"] + unsynced
-                soil_display = last_stats["soil"] + (unsynced * 0.02)
-                water_display = last_stats["water"] + (unsynced * 0.15)
+                soil_display = last_stats["soil"] + (unsynced * 1)
+                water_display = last_stats["water"] + (unsynced * 500)
 
                 print(
-                    f"Display values: Total={total_display}, Soil={soil_display:.2f}kg, Water={water_display:.2f}L")
+                    f"Display values: Total={total_display}, Soil={soil_display:.2f}m2, Water={water_display:.2f}L")
                 print(f"Unsynced records: {unsynced}")
 
                 # Update TFT display if available
