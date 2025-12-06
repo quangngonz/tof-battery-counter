@@ -140,7 +140,7 @@ def main():
                 water_display = last_stats["water"] + (unsynced * 500)
 
                 print(
-                    f"Display values: Total={total_display}, Soil={soil_display:.2f}m2, Water={water_display:.2f}L")
+                    f"Display values: Total={total_display}, Soil={soil_display:.2f}m3, Water={water_display:.2f}L")
                 print(f"Unsynced records: {unsynced}")
 
                 # Update TFT display if available
