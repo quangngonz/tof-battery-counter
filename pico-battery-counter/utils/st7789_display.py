@@ -324,7 +324,7 @@ class TFT:
             # Draw soil pollution
             draw.text((10, 155), "Soil Saved:", fill=(
                 100, 150, 255), font=font_small)
-            draw.text((10, 180), f"{soil:.2f} m2", fill=(
+            draw.text((10, 180), f"{soil:.2f} m3", fill=(
                 150, 200, 255), font=font_medium)
 
             # Draw water pollution
