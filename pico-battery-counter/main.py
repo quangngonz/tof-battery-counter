@@ -103,7 +103,7 @@ def main():
                     water_display = last_stats["water"] + (unsynced * 500)
 
                     print(
-                        f"Instant update: Total={total_display}, Soil={soil_display:.2f}m2, Water={water_display:.2f}L")
+                        f"Instant update: Total={total_display}, Soil={soil_display:.2f}m3, Water={water_display:.2f}L")
                     tft.show(total_display, soil_display,
                              water_display, current_distance)
 
