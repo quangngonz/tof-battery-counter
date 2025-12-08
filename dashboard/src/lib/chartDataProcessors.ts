@@ -86,36 +86,38 @@ export const processWeekDetailedData = (
   startDate: Date,
   endDate: Date
 ): ProcessedChartData[] => {
-  const dailyData: { [key: string]: number } = {};
+  const hourlyData: { [key: string]: number } = {};
 
   data.forEach((item) => {
     const itemDate = new Date(item.timestamp);
     if (itemDate >= startDate && itemDate <= endDate) {
+      // Group by hour
       const dateKey = formatDate(itemDate, {
         month: 'short',
         day: 'numeric',
-        year: 'numeric',
       });
-      dailyData[dateKey] = (dailyData[dateKey] || 0) + item.amount;
+      const hour = itemDate.getHours();
+      const timeKey = `${dateKey} ${hour}:00`;
+      hourlyData[timeKey] = (hourlyData[timeKey] || 0) + item.amount;
     }
   });
 
-  const result: ProcessedChartData[] = [];
-  const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    const dateKey = formatDate(currentDate, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    result.push({
-      date: dateKey,
-      batteries: dailyData[dateKey] || 0,
-    });
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  return result;
+  // Convert to array and sort by timestamp
+  return Object.entries(hourlyData)
+    .map(([timeKey, batteries]) => {
+      const [datePart, timePart] = timeKey.split(' ');
+      return {
+        date: `${datePart} ${timePart}`,
+        batteries,
+        _sortKey: timeKey,
+      };
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a._sortKey.replace(' ', ' 2025 '));
+      const dateB = new Date(b._sortKey.replace(' ', ' 2025 '));
+      return dateA.getTime() - dateB.getTime();
+    })
+    .map(({ date, batteries }) => ({ date, batteries }));
 };
 
 export const processWeekData = (
@@ -154,30 +156,49 @@ export const processMonthDetailedData = (
   monthStart: Date,
   monthEnd: Date
 ): ProcessedChartData[] => {
-  return data
-    .filter((item) => {
-      const itemDate = new Date(item.timestamp);
-      return itemDate >= monthStart && itemDate <= monthEnd;
-    })
-    .sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
-    .map((item) => {
-      const itemDate = new Date(item.timestamp);
+  const hourlyData: {
+    [key: string]: { batteries: number; weekLabel: string };
+  } = {};
+
+  data.forEach((item) => {
+    const itemDate = new Date(item.timestamp);
+    if (itemDate >= monthStart && itemDate <= monthEnd) {
+      // Group by hour
+      const dateKey = formatDate(itemDate, {
+        month: 'short',
+        day: 'numeric',
+      });
+      const hour = itemDate.getHours();
+      const timeKey = `${dateKey} ${hour}:00`;
+
       const weekStart = getStartOfWeek(itemDate);
       const weekLabel = getWeekLabel(weekStart);
-      return {
-        date: formatDate(itemDate, {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        }),
-        weekLabel: weekLabel,
-        batteries: item.amount,
-      };
-    });
+
+      if (!hourlyData[timeKey]) {
+        hourlyData[timeKey] = { batteries: 0, weekLabel };
+      }
+      hourlyData[timeKey].batteries += item.amount;
+    }
+  });
+
+  // Convert to array and sort by timestamp
+  return Object.entries(hourlyData)
+    .map(([date, { batteries, weekLabel }]) => ({
+      date,
+      weekLabel,
+      batteries,
+      _sortKey: date,
+    }))
+    .sort((a, b) => {
+      const dateA = new Date(
+        a._sortKey.replace(' ', ` ${monthStart.getFullYear()} `)
+      );
+      const dateB = new Date(
+        b._sortKey.replace(' ', ` ${monthStart.getFullYear()} `)
+      );
+      return dateA.getTime() - dateB.getTime();
+    })
+    .map(({ date, weekLabel, batteries }) => ({ date, weekLabel, batteries }));
 };
 
 export const processMonthData = (
@@ -208,19 +229,26 @@ export const processMonthData = (
 export const processAllDetailedData = (
   data: ChartDataPoint[]
 ): ProcessedChartData[] => {
-  return data
-    .sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
-    .map((item) => ({
-      date: formatDate(new Date(item.timestamp), {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      batteries: item.amount,
-    }));
+  const dailyData: { [key: string]: number } = {};
+
+  data.forEach((item) => {
+    const itemDate = new Date(item.timestamp);
+    const dateKey = formatDate(itemDate, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    dailyData[dateKey] = (dailyData[dateKey] || 0) + item.amount;
+  });
+
+  return Object.entries(dailyData)
+    .map(([date, batteries]) => ({
+      date,
+      batteries,
+      _sortKey: new Date(date).getTime(),
+    }))
+    .sort((a, b) => a._sortKey - b._sortKey)
+    .map(({ date, batteries }) => ({ date, batteries }));
 };
 
 export const processAllData = (
