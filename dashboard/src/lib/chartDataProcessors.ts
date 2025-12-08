@@ -25,27 +25,60 @@ export const processDayData = (
 ): ProcessedChartData[] => {
   if (!targetDate) return [];
 
-  return data
-    .filter((item) => {
-      const itemDate = new Date(item.timestamp);
-      const dateKey = formatDate(itemDate, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-      return dateKey === targetDate;
+  // Filter data for the target date
+  const filteredData = data.filter((item) => {
+    const itemDate = new Date(item.timestamp);
+    const dateKey = formatDate(itemDate, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return dateKey === targetDate;
+  });
+
+  // Aggregate data into 10-minute intervals
+  const intervalData: { [key: string]: number } = {};
+
+  filteredData.forEach((item) => {
+    const itemDate = new Date(item.timestamp);
+    const hours = itemDate.getHours();
+    const minutes = itemDate.getMinutes();
+
+    // Round down to nearest 10-minute interval
+    const roundedMinutes = Math.floor(minutes / 10) * 10;
+
+    // Create time key (e.g., "14:20")
+    const timeKey = `${hours}:${roundedMinutes.toString().padStart(2, '0')}`;
+
+    intervalData[timeKey] = (intervalData[timeKey] || 0) + item.amount;
+  });
+
+  // Convert to array and sort by time
+  return Object.entries(intervalData)
+    .map(([timeKey, batteries]) => {
+      const [hour, minute] = timeKey.split(':').map(Number);
+      const date = new Date();
+      date.setHours(hour, minute);
+
+      return {
+        date: formatTime(date, {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+        batteries,
+        // Store numeric values for sorting
+        _hour: hour,
+        _minute: minute,
+      };
     })
-    .sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
-    .map((item) => ({
-      date: formatTime(new Date(item.timestamp), {
-        hour: 'numeric',
-        minute: '2-digit',
-      }),
-      batteries: item.amount,
-    }));
+    .sort((a, b) => {
+      // @ts-ignore - _hour and _minute are temporary sorting fields
+      const timeA = a._hour * 60 + a._minute;
+      // @ts-ignore
+      const timeB = b._hour * 60 + b._minute;
+      return timeA - timeB;
+    })
+    .map(({ date, batteries }) => ({ date, batteries }));
 };
 
 export const processWeekDetailedData = (
