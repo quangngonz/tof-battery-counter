@@ -19,6 +19,80 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 ## Scripts Overview
 
+### 🔋 `manual_add_batteries.py` ⭐ NEW
+
+Manually add battery entries with realistic timestamps based on school schedule. Perfect for manual entry when the sensor isn't working.
+
+**Usage:**
+
+**Full Day Mode (default):**
+
+```bash
+# Add 120 batteries spread across the entire school day (7:10 AM - 5:30 PM)
+python scripts/manual_add_batteries.py
+
+# Custom number of batteries
+python scripts/manual_add_batteries.py -n 50
+```
+
+**Live Mode:**
+
+```bash
+# Add batteries up to current time only (interactive prompt)
+python scripts/manual_add_batteries.py --live-time
+
+# Example: If it's lunch time (12:30 PM), it will:
+# 1. Show current period: "Lunch"
+# 2. Ask how many batteries to add
+# 3. Generate entries from 7:10 AM to 12:30 PM with realistic distribution
+```
+
+**Options:**
+
+- `--live-time` - Enable live mode (prompts for count, adds entries up to now)
+- `-n, --num-batteries NUM` - Number of batteries (default: 120)
+- `-d, --device-id ID` - Device ID (default: pico-001)
+
+**Features:**
+
+- Realistic time distribution based on school schedule
+- Higher frequency during breaks and lunch (peak collection times)
+- Hanoi timezone (GMT+7)
+- School periods:
+  - 7:10-7:25: Arrival (moderate activity)
+  - 7:25-9:30: Morning classes (low activity)
+  - 9:30-10:30: Break (HIGH activity)
+  - 11:30-1:30: Lunch (HIGHEST activity)
+  - 2:30-2:50: Afternoon tea (high activity)
+  - 4:30-5:30: After school (low activity)
+
+**Example Output:**
+
+```
+⏰ Current time: 12:45:32 (Hanoi GMT+7)
+📚 Current period: Lunch
+
+🔋 How many batteries to add? (default: 120): 75
+
+🔋 Adding 75 battery entries from 7:10 AM to now (12:45:32)...
+📅 Date: 2025-12-09 (Hanoi GMT+7)
+✅ Inserted batch 1: 50 entries (50/75)
+✅ Inserted batch 2: 25 entries (75/75)
+
+🎉 Successfully added 75 battery entries!
+
+📊 Time distribution:
+   7:00-10:00 (Morning/Arrival): 22 entries
+   9:30-11:00 (Break): 18 entries
+   11:30-14:00 (Lunch): 35 entries
+   14:00-17:30 (Afternoon/Tea): 0 entries
+
+⏰ First entry: 07:11:23
+⏰ Last entry: 12:44:58
+```
+
+---
+
 ### 📊 `create_mock_data.py`
 
 Generates historical mock battery log entries for a single device with realistic patterns.

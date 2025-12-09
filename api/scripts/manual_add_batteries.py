@@ -1,5 +1,7 @@
 import os
+import sys
 import random
+import argparse
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
@@ -21,7 +23,46 @@ supabase: Client = create_client(supabase_url, supabase_key)
 HANOI_TZ = ZoneInfo("Asia/Ho_Chi_Minh")  # GMT+7
 
 
-def generate_school_day_timestamps(date, num_entries):
+def get_current_school_period(current_time):
+    """
+    Determine the current school period based on time.
+
+    Returns:
+        tuple: (period_name, start_time, end_time) or None if outside school hours
+    """
+    hour = current_time.hour
+    minute = current_time.minute
+    current_minutes = hour * 60 + minute
+
+    periods = [
+        ("Arrival", (7, 10), (7, 25)),
+        ("Morning Classes", (7, 25), (9, 30)),
+        ("Break", (9, 30), (10, 30)),
+        ("Late Morning", (10, 30), (11, 30)),
+        ("Lunch", (11, 30), (13, 30)),
+        ("Early Afternoon", (13, 30), (14, 30)),
+        ("Afternoon Tea", (14, 30), (14, 50)),
+        ("Late Afternoon", (14, 50), (16, 30)),
+        ("After School", (16, 30), (17, 30)),
+    ]
+
+    for period_name, (start_h, start_m), (end_h, end_m) in periods:
+        start_minutes = start_h * 60 + start_m
+        end_minutes = end_h * 60 + end_m
+
+        if start_minutes <= current_minutes <= end_minutes:
+            return period_name, (start_h, start_m), (end_h, end_m)
+
+    # Before school or after school hours
+    if current_minutes < 7 * 60 + 10:
+        return None, None, None
+    elif current_minutes > 17 * 60 + 30:
+        return "After Hours", (16, 30), (17, 30)
+
+    return None, None, None
+
+
+def generate_school_day_timestamps(date, num_entries, end_time=None):
     """
     Generate realistic timestamps for battery collections during a school day.
 
@@ -37,6 +78,7 @@ def generate_school_day_timestamps(date, num_entries):
     Args:
         date: datetime object for the target date
         num_entries: Number of entries to generate
+        end_time: Optional datetime to limit entries up to this time (for live mode)
 
     Returns:
         List of datetime objects in Hanoi timezone
@@ -57,8 +99,34 @@ def generate_school_day_timestamps(date, num_entries):
         (16, 30, 17, 30, 5),     # After school - very low
     ]
 
+    # Filter time windows if end_time is specified
+    if end_time:
+        end_minutes = end_time.hour * 60 + end_time.minute
+        filtered_windows = []
+
+        for start_h, start_m, end_h, end_m, weight in time_windows:
+            window_start = start_h * 60 + start_m
+            window_end = end_h * 60 + end_m
+
+            # Skip windows that start after end_time
+            if window_start >= end_minutes:
+                continue
+
+            # Adjust window end if it goes past end_time
+            if window_end > end_minutes:
+                end_h = end_minutes // 60
+                end_m = end_minutes % 60
+
+            filtered_windows.append((start_h, start_m, end_h, end_m, weight))
+
+        time_windows = filtered_windows
+
     # Calculate total weight
     total_weight = sum(w[4] for w in time_windows)
+
+    if total_weight == 0:
+        print("⚠️  No valid time windows found")
+        return []
 
     # Distribute entries across time windows based on weights
     for _ in range(num_entries):
@@ -103,7 +171,7 @@ def generate_school_day_timestamps(date, num_entries):
     return timestamps
 
 
-def add_manual_batteries(num_batteries=120, device_id="pico-001", batch_size=50):
+def add_manual_batteries(num_batteries=120, device_id="pico-001", batch_size=50, live_mode=False):
     """
     Manually add battery entries for today with realistic school schedule timestamps.
 
@@ -111,18 +179,50 @@ def add_manual_batteries(num_batteries=120, device_id="pico-001", batch_size=50)
         num_batteries: Number of battery entries to add (default 120)
         device_id: Device identifier for the logs
         batch_size: Number of entries to insert per batch
+        live_mode: If True, only add entries up to current time
     """
-    print(f"🔋 Adding {num_batteries} battery entries for today...")
+    # Get current time in Hanoi timezone
+    now = datetime.now(HANOI_TZ)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Get today's date in Hanoi timezone
-    today = datetime.now(HANOI_TZ).replace(
-        hour=0, minute=0, second=0, microsecond=0)
+    if live_mode:
+        period_name, start_time, end_time = get_current_school_period(now)
 
-    print(f"📅 Date: {today.strftime('%Y-%m-%d')} (Hanoi GMT+7)")
-    print(f"🏫 Simulating school day battery collections...")
+        if period_name is None:
+            print(f"⚠️  Current time: {now.strftime('%H:%M:%S')}")
+            print(f"❌ Outside school hours (7:10 AM - 5:30 PM)")
+            return
 
-    # Generate timestamps
-    timestamps = generate_school_day_timestamps(today, num_batteries)
+        print(f"⏰ Current time: {now.strftime('%H:%M:%S')} (Hanoi GMT+7)")
+        print(f"📚 Current period: {period_name}")
+
+        # Ask user for number of batteries
+        try:
+            user_input = input(
+                f"\n🔋 How many batteries to add? (default: {num_batteries}): ").strip()
+            if user_input:
+                num_batteries = int(user_input)
+        except ValueError:
+            print(f"Invalid input. Using default: {num_batteries}")
+        except KeyboardInterrupt:
+            print("\n\n❌ Cancelled by user")
+            return
+
+        print(
+            f"\n🔋 Adding {num_batteries} battery entries from 7:10 AM to now ({now.strftime('%H:%M:%S')})...")
+        print(f"📅 Date: {today.strftime('%Y-%m-%d')} (Hanoi GMT+7)")
+
+        # Generate timestamps up to current time
+        timestamps = generate_school_day_timestamps(
+            today, num_batteries, end_time=now)
+    else:
+        print(
+            f"🔋 Adding {num_batteries} battery entries for full school day...")
+        print(f"📅 Date: {today.strftime('%Y-%m-%d')} (Hanoi GMT+7)")
+        print(f"🏫 Simulating school day battery collections...")
+
+        # Generate timestamps for full day
+        timestamps = generate_school_day_timestamps(today, num_batteries)
 
     # Create entries
     entries = []
@@ -168,5 +268,32 @@ def add_manual_batteries(num_batteries=120, device_id="pico-001", batch_size=50)
 
 
 if __name__ == "__main__":
-    # Add 120 batteries with realistic school day pattern
-    add_manual_batteries(num_batteries=120, device_id="pico-001")
+    parser = argparse.ArgumentParser(
+        description='Add battery entries to the database with realistic school day timestamps'
+    )
+    parser.add_argument(
+        '--live-time',
+        action='store_true',
+        help='Live mode: Ask for battery count and add entries up to current time only'
+    )
+    parser.add_argument(
+        '-n', '--num-batteries',
+        type=int,
+        default=120,
+        help='Number of battery entries to add (default: 120, ignored in live mode unless specified)'
+    )
+    parser.add_argument(
+        '-d', '--device-id',
+        type=str,
+        default='pico-001',
+        help='Device ID for the entries (default: pico-001)'
+    )
+
+    args = parser.parse_args()
+
+    # Add batteries with specified parameters
+    add_manual_batteries(
+        num_batteries=args.num_batteries,
+        device_id=args.device_id,
+        live_mode=args.live_time
+    )
