@@ -19,8 +19,8 @@ interface LogEntry {
 }
 
 // Environmental impact constants
-const SOIL_PER_BATTERY = 0.5; // kg
-const WATER_PER_BATTERY = 1.0; // L
+const SOIL_PER_BATTERY = 1; // in meter square
+const WATER_PER_BATTERY = 500; // in L
 
 const fetchStats = async (): Promise<StatsData> => {
   const { data, error } = await supabase.from('battery_logs').select('amount');
@@ -129,7 +129,7 @@ const Index = () => {
             loading={statsLoading}
           />
           <StatCard
-            title="Soil Saved (kg)"
+            title="Soil Saved (m³)"
             value={stats?.soil?.toLocaleString() || '0'}
             icon={Leaf}
             loading={statsLoading}
