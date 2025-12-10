@@ -171,12 +171,13 @@ def generate_school_day_timestamps(date, num_entries, end_time=None):
     return timestamps
 
 
-def add_manual_batteries(num_batteries=120, device_id="pico-001", batch_size=50, live_mode=False):
+def add_manual_batteries(num_batteries=120, target_count=None, device_id="pico-001", batch_size=50, live_mode=False):
     """
     Manually add battery entries for today with realistic school schedule timestamps.
 
     Args:
         num_batteries: Number of battery entries to add (default 120)
+        target_count: Target total count to reach (mutually exclusive with num_batteries)
         device_id: Device identifier for the logs
         batch_size: Number of entries to insert per batch
         live_mode: If True, only add entries up to current time
@@ -184,6 +185,35 @@ def add_manual_batteries(num_batteries=120, device_id="pico-001", batch_size=50,
     # Get current time in Hanoi timezone
     now = datetime.now(HANOI_TZ)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # If target_count is specified, calculate how many to add
+    if target_count is not None:
+        # Get current count for today
+        today_start = today.isoformat()
+        today_end = (today + timedelta(days=1)).isoformat()
+
+        try:
+            result = supabase.table('battery_logs')\
+                .select('amount', count='exact')\
+                .eq('device_id', device_id)\
+                .gte('timestamp', today_start)\
+                .lt('timestamp', today_end)\
+                .execute()
+
+            current_count = sum(row['amount']
+                                for row in result.data) if result.data else 0
+            print(f"📊 Current count for today: {current_count}")
+
+            if current_count >= target_count:
+                print(
+                    f"✅ Already at or above target ({target_count}). No entries needed.")
+                return
+
+            num_batteries = target_count - current_count
+            print(f"🎯 Target: {target_count} | Need to add: {num_batteries}")
+        except Exception as e:
+            print(f"❌ Error fetching current count: {str(e)}")
+            return
 
     if live_mode:
         period_name, start_time, end_time = get_current_school_period(now)
@@ -276,12 +306,21 @@ if __name__ == "__main__":
         action='store_true',
         help='Live mode: Ask for battery count and add entries up to current time only'
     )
-    parser.add_argument(
+
+    # Create mutually exclusive group for -n and --target
+    count_group = parser.add_mutually_exclusive_group()
+    count_group.add_argument(
         '-n', '--num-batteries',
         type=int,
         default=120,
         help='Number of battery entries to add (default: 120, ignored in live mode unless specified)'
     )
+    count_group.add_argument(
+        '--target',
+        type=int,
+        help='Target total count to reach for today (will calculate and add the difference)'
+    )
+
     parser.add_argument(
         '-d', '--device-id',
         type=str,
@@ -293,7 +332,8 @@ if __name__ == "__main__":
 
     # Add batteries with specified parameters
     add_manual_batteries(
-        num_batteries=args.num_batteries,
+        num_batteries=args.num_batteries if args.target is None else None,
+        target_count=args.target,
         device_id=args.device_id,
         live_mode=args.live_time
     )
