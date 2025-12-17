@@ -10,6 +10,9 @@ API_STATS = "https://asep-battery-counter-api.vercel.app/stats"
 IR_PIN = 15
 LED_PIN = 14
 
+# Limit switch GPIO
+LIMIT_SWITCH_PIN = 17
+
 # Device Configuration
 DEVICE_ID = "rpi4_1"
 

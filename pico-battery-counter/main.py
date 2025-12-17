@@ -13,7 +13,7 @@ import sys
 from config import LED_PIN, MAIN_LOOP_SLEEP, STATS_UPDATE_INTERVAL_LOOPS, SHOW_DISTANCE_MEASUREMENT
 from utils.sync import add_record, start_sync_thread, stop_sync_thread, fetch_stats, load_cache
 from utils.st7789_display import TFT
-from utils.tof_sensor import TOFSensor
+from utils.limit_switch_sensor import LimitSwitchSensor
 
 
 def cleanup_handler(signum, frame):
@@ -45,8 +45,8 @@ def main():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
-    # Initialize TOF sensor
-    sensor = TOFSensor()
+    # Initialize limit switch sensor
+    sensor = LimitSwitchSensor()
 
     # Initialize LED
     GPIO.setup(LED_PIN, GPIO.OUT)
@@ -75,7 +75,7 @@ def main():
     local_detections = 0  # Track detections since last sync to prevent double-counting
 
     print("\n" + "=" * 50)
-    print("System ready! Monitoring TOF sensor...")
+    print("System ready! Monitoring limit switch sensor...")
     print("=" * 50 + "\n")
 
     # Main loop
@@ -85,10 +85,7 @@ def main():
             # Turn LED on during active monitoring
             GPIO.output(LED_PIN, GPIO.HIGH)
 
-            # Read current distance from TOF sensor
-            current_distance = sensor.read_distance()
-
-            # Check for TOF object detection
+            # Check for limit switch press
             if sensor.check():
                 print(f"\n*** BATTERY DETECTED! ***")
                 add_record()
