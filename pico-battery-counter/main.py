@@ -74,6 +74,11 @@ def main():
     }
     local_detections = 0  # Track detections since last sync to prevent double-counting
 
+    # High water marks - never show values lower than these
+    max_total_shown = 0
+    max_soil_shown = 0.0
+    max_water_shown = 0.0
+
     print("\n" + "=" * 50)
     print("System ready! Monitoring limit switch sensor...")
     print("=" * 50 + "\n")
@@ -98,6 +103,16 @@ def main():
                     total_display = last_stats["total"] + unsynced
                     soil_display = last_stats["soil"] + (unsynced * 1)
                     water_display = last_stats["water"] + (unsynced * 500)
+
+                    # Apply high water mark - never decrease
+                    total_display = max(total_display, max_total_shown)
+                    soil_display = max(soil_display, max_soil_shown)
+                    water_display = max(water_display, max_water_shown)
+
+                    # Update high water marks
+                    max_total_shown = total_display
+                    max_soil_shown = soil_display
+                    max_water_shown = water_display
 
                     print(
                         f"Instant update: Total={total_display}, Soil={soil_display:.2f}m3, Water={water_display:.2f}L")
@@ -126,9 +141,19 @@ def main():
                         # Server hasn't caught up yet, adjust counter
                         local_detections -= server_increase
 
-                    last_stats = new_stats
-                    print(f"\nStats updated from API: {last_stats}")
-                    print(f"Local detections pending sync: {local_detections}")
+                # Apply high water mark - never decrease
+                total_display = max(total_display, max_total_shown)
+                soil_display = max(soil_display, max_soil_shown)
+                water_display = max(water_display, max_water_shown)
+
+                # Update high water marks
+                max_total_shown = total_display
+                max_soil_shown = soil_display
+                max_water_shown = water_display
+
+                last_stats = new_stats
+                print(f"\nStats updated from API: {last_stats}")
+                print(f"Local detections pending sync: {local_detections}")
 
                 # Calculate display values including unsynced records
                 unsynced = len(load_cache())
