@@ -25,6 +25,9 @@ class DetectionService:
         self.tft = None
         self.loop_counter = 0
 
+        # Local detection counter - incremented on detect, reset when stats update
+        self.local_detections = 0
+
         # Stats tracking
         self.last_stats = {
             "total": 0,
@@ -63,17 +66,18 @@ class DetectionService:
 
     def _update_display(self, current_distance=-1):
         """
-        Update display with current stats + unsynced records
+        Update display with current stats + local detections
         Always applies high water mark to prevent decreasing values
+        NO LOCKS - uses local counter for instant updates!
         """
         if self.tft is None:
             return
 
-        # Calculate display values including unsynced records
-        unsynced = len(load_cache())
-        total_display = self.last_stats["total"] + unsynced
-        soil_display = self.last_stats["soil"] + (unsynced * 1)
-        water_display = self.last_stats["water"] + (unsynced * 500)
+        # Calculate display values using LOCAL counter (no cache lock!)
+        total_display = self.last_stats["total"] + self.local_detections
+        soil_display = self.last_stats["soil"] + (self.local_detections * 1)
+        water_display = self.last_stats["water"] + \
+            (self.local_detections * 500)
 
         # Apply high water mark - never decrease
         total_display = max(total_display, self.max_total_shown)
@@ -106,10 +110,13 @@ class DetectionService:
                 if self.sensor.check():
                     print(f"\n*** BATTERY DETECTED! ***")
 
-                    # Add record to cache
+                    # Increment local counter first (instant!)
+                    self.local_detections += 1
+
+                    # Add record to cache (may wait for lock, but we don't care)
                     add_record()
 
-                    # INSTANT DISPLAY UPDATE - No waiting!
+                    # INSTANT DISPLAY UPDATE - uses local counter, no locks!
                     self._update_display(current_distance)
                     print(f"Display updated instantly!")
 
@@ -122,14 +129,26 @@ class DetectionService:
                 # Periodic display update with latest stats (non-blocking)
                 if self.loop_counter % STATS_UPDATE_INTERVAL_LOOPS == 0:
                     # Get latest stats from sync service (no network call!)
-                    self.last_stats = get_latest_stats()
+                    new_stats = get_latest_stats()
+
+                    # Check if server caught up with our local detections
+                    server_increase = new_stats["total"] - \
+                        self.last_stats["total"]
+                    if server_increase >= self.local_detections:
+                        # Server has all our detections
+                        self.local_detections = 0
+                    else:
+                        # Server hasn't caught up yet
+                        self.local_detections -= server_increase
+
+                    self.last_stats = new_stats
 
                     # Update display with latest stats
                     self._update_display(current_distance)
 
                     unsynced = len(load_cache())
                     print(
-                        f"Display updated: Total={self.max_total_shown}, Unsynced={unsynced}")
+                        f"Display updated: Total={self.max_total_shown}, Local={self.local_detections}, Unsynced={unsynced}")
 
                 # Turn LED off
                 GPIO.output(LED_PIN, GPIO.LOW)
