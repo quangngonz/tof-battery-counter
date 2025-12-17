@@ -141,6 +141,16 @@ def main():
                         # Server hasn't caught up yet, adjust counter
                         local_detections -= server_increase
 
+                    last_stats = new_stats
+                    print(f"\nStats updated from API: {last_stats}")
+                    print(f"Local detections pending sync: {local_detections}")
+
+                # Calculate display values including unsynced records
+                unsynced = len(load_cache())
+                total_display = last_stats["total"] + unsynced
+                soil_display = last_stats["soil"] + (unsynced * 1)
+                water_display = last_stats["water"] + (unsynced * 500)
+
                 # Apply high water mark - never decrease
                 total_display = max(total_display, max_total_shown)
                 soil_display = max(soil_display, max_soil_shown)
@@ -150,16 +160,6 @@ def main():
                 max_total_shown = total_display
                 max_soil_shown = soil_display
                 max_water_shown = water_display
-
-                last_stats = new_stats
-                print(f"\nStats updated from API: {last_stats}")
-                print(f"Local detections pending sync: {local_detections}")
-
-                # Calculate display values including unsynced records
-                unsynced = len(load_cache())
-                total_display = last_stats["total"] + unsynced
-                soil_display = last_stats["soil"] + (unsynced * 1)
-                water_display = last_stats["water"] + (unsynced * 500)
 
                 print(
                     f"Display values: Total={total_display}, Soil={soil_display:.2f}m3, Water={water_display:.2f}L")
