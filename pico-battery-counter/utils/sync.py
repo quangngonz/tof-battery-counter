@@ -158,12 +158,21 @@ def _sync_worker():
                             print(f"Error syncing record: {e}")
                             updated_cache.append(record)
 
-                    # Save updated cache (only failed records remain)
-                    save_cache(updated_cache)
+                    # Reload cache to preserve any records added during sync
+                    current_cache = load_cache()
+                    # Get timestamps of records we just synced successfully
+                    synced_timestamps = set(r['timestamp']
+                                            for r in cache if r not in updated_cache)
+                    # Keep records that weren't synced OR were added during this sync operation
+                    final_cache = [
+                        r for r in current_cache if r['timestamp'] not in synced_timestamps]
 
-                    if len(updated_cache) < len(cache):
+                    # Save updated cache (only successfully synced records removed)
+                    save_cache(final_cache)
+
+                    if len(final_cache) < len(cache):
                         print(
-                            f"Sync complete. {len(updated_cache)} records remain in cache.")
+                            f"Sync complete. {len(final_cache)} records remain in cache.")
 
         except Exception as e:
             print(f"Sync thread error: {e}")
