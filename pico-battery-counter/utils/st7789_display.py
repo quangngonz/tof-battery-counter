@@ -324,13 +324,13 @@ class TFT:
             # Draw soil pollution
             draw.text((10, 155), "Soil Saved:", fill=(
                 100, 150, 255), font=font_small)
-            draw.text((10, 180), f"{soil:.2f} m3", fill=(
+            draw.text((10, 180), f"{soil} m3", fill=(
                 150, 200, 255), font=font_medium)
 
             # Draw water pollution
             draw.text((160, 155), "Water Saved:", fill=(
                 255, 150, 100), font=font_small)
-            draw.text((160, 180), f"{water:.2f} L", fill=(
+            draw.text((160, 180), f"{water} L", fill=(
                 255, 200, 150), font=font_medium)
 
             # Center the clock horizontally in the top-right section
