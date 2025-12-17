@@ -123,12 +123,32 @@ def fetch_stats():
 _sync_thread = None
 _sync_running = False
 
+# Shared stats - updated by sync service, read by detection service
+_latest_stats = {
+    "total": 0,
+    "soil": 0,
+    "water": 0
+}
+_stats_lock = threading.Lock()
+
+
+def get_latest_stats():
+    """
+    Get the latest stats (non-blocking, no network call)
+
+    Returns:
+        dict: Latest stats cached from API
+    """
+    with _stats_lock:
+        return _latest_stats.copy()
+
 
 def _sync_worker():
     """
     Background worker that continuously syncs cached records to the API
+    and refreshes stats periodically
     """
-    global _sync_running
+    global _sync_running, _latest_stats
 
     print("Sync thread started")
 
@@ -136,6 +156,14 @@ def _sync_worker():
         try:
             # Check internet connectivity
             if has_internet():
+                # Fetch fresh stats from API (non-blocking for detection service)
+                new_stats = fetch_stats()
+                if new_stats is not None:
+                    with _stats_lock:
+                        _latest_stats = new_stats
+                    print(f"Stats refreshed: {_latest_stats}")
+
+                # Sync cached records
                 cache = load_cache()
 
                 if cache:

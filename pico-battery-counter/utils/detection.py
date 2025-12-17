@@ -7,7 +7,7 @@ import RPi.GPIO as GPIO
 import time
 import threading
 from config import LED_PIN, MAIN_LOOP_SLEEP, STATS_UPDATE_INTERVAL_LOOPS, SHOW_DISTANCE_MEASUREMENT
-from utils.sync import add_record, fetch_stats, load_cache
+from utils.sync import add_record, get_latest_stats, load_cache
 from utils.st7789_display import TFT
 from utils.limit_switch_sensor import LimitSwitchSensor
 
@@ -119,12 +119,10 @@ class DetectionService:
                     GPIO.output(LED_PIN, GPIO.HIGH)
                     time.sleep(0.1)
 
-                # Periodic stats refresh from API
+                # Periodic display update with latest stats (non-blocking)
                 if self.loop_counter % STATS_UPDATE_INTERVAL_LOOPS == 0:
-                    new_stats = fetch_stats()
-                    if new_stats is not None:
-                        self.last_stats = new_stats
-                        print(f"\nStats refreshed: {self.last_stats}")
+                    # Get latest stats from sync service (no network call!)
+                    self.last_stats = get_latest_stats()
 
                     # Update display with latest stats
                     self._update_display(current_distance)
