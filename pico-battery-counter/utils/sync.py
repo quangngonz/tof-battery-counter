@@ -14,8 +14,11 @@ from config import (
     WIFI_CHECK_HOST, SYNC_INTERVAL_SECONDS
 )
 
+# Thread-safe cache access lock
+_cache_lock = threading.Lock()
 
 # Cache Management Functions
+
 
 def load_cache():
     """
@@ -24,16 +27,17 @@ def load_cache():
     Returns:
         list: List of cached records, empty list if file doesn't exist
     """
-    cache_path = Path(CACHE_FILE)
-    if not cache_path.exists():
-        return []
+    with _cache_lock:
+        cache_path = Path(CACHE_FILE)
+        if not cache_path.exists():
+            return []
 
-    try:
-        with open(cache_path, 'r') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"Error loading cache: {e}")
-        return []
+        try:
+            with open(cache_path, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Error loading cache: {e}")
+            return []
 
 
 def save_cache(data):
@@ -43,11 +47,12 @@ def save_cache(data):
     Args:
         data: List of records to save
     """
-    try:
-        with open(CACHE_FILE, 'w') as f:
-            json.dump(data, f, indent=2)
-    except IOError as e:
-        print(f"Error saving cache: {e}")
+    with _cache_lock:
+        try:
+            with open(CACHE_FILE, 'w') as f:
+                json.dump(data, f, indent=2)
+        except IOError as e:
+            print(f"Error saving cache: {e}")
 
 
 def add_record():
