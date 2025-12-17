@@ -160,12 +160,19 @@ def _sync_worker():
 
                     # Reload cache to preserve any records added during sync
                     current_cache = load_cache()
-                    # Get timestamps of records we just synced successfully
-                    synced_timestamps = set(r['timestamp']
-                                            for r in cache if r not in updated_cache)
-                    # Keep records that weren't synced OR were added during this sync operation
+                    # Get timestamps of records that failed to sync (still need to retry)
+                    failed_timestamps = set(r['timestamp']
+                                            for r in updated_cache)
+                    # Get timestamps of original records we attempted to sync
+                    attempted_timestamps = set(r['timestamp'] for r in cache)
+
+                    # Keep records that either:
+                    # 1. Failed to sync (in failed_timestamps), OR
+                    # 2. Were added during sync (NOT in attempted_timestamps)
                     final_cache = [
-                        r for r in current_cache if r['timestamp'] not in synced_timestamps]
+                        r for r in current_cache
+                        if r['timestamp'] in failed_timestamps or r['timestamp'] not in attempted_timestamps
+                    ]
 
                     # Save updated cache (only successfully synced records removed)
                     save_cache(final_cache)
