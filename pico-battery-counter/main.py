@@ -162,7 +162,7 @@ def main():
                 max_water_shown = water_display
 
                 print(
-                    f"Display values: Total={total_display}, Soil={soil_display:.2f}m3, Water={water_display:.2f}L")
+                    f"Display values: Total={total_display}, Soil={soil_display}m3, Water={water_display}L")
                 print(f"Unsynced records: {unsynced}")
 
                 # Update TFT display if available
